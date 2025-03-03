@@ -1,0 +1,123 @@
+# === СИСТЕМНЫЕ ФАЙЛЫ ===
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*.log
+*.pid
+
+# === ПРОЕКТНЫЕ ФАЙЛЫ ===
+# Laravel
+.env
+.env.*
+.phpunit.result.cache
+composer.lock
+vendor/
+storage/*.key
+storage/oauth-*.key
+storage/logs/
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/testing/*
+storage/framework/views/*
+bootstrap/cache/*.php
+public/hot
+public/storage
+
+# Vue.js
+frontend/node_modules/
+frontend/dist/
+frontend/.bun/
+frontend/bun.lockb
+frontend/npm-debug.log*
+frontend/yarn-error.log
+
+# Docker
+docker-compose.override.yml
+.docker/
+postgres/
+redis/
+mysql/
+volumes/
+.dockerignore
+
+# Тесты
+/phpunit.xml
+/phpunit.xml.dist
+/tests/TestCase.php
+/tests/CreatesApplication.php
+
+# Артефакты
+*.zip
+*.rar
+*.tar.gz
+*.bak
+*.tmp
+*.temp
+*.swp
+*.swo
+*.orig
+*.rej
+
+# === СПЕЦИАЛЬНЫЕ ===
+# Laravel Mix
+mix-manifest.json
+hot
+*.mix.js
+
+# Composer
+composer.phar
+auth.json
+
+# NPM/Bun
+package-lock.json
+yarn.lock
+.pnp.*
+*.tgz
+
+# Логи и кэш
+*.log
+.cache/
+.temp/
+.tmp/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
