@@ -26,6 +26,7 @@ class TestController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:pending,running,completed,failed',
+            'type' => 'required|in:crud,sniffer,load',
         ]);
 
         if ($validator->fails()) {
@@ -73,5 +74,30 @@ class TestController extends Controller
         $test->delete();
 
         return response(['message' => 'Тест удален'], 200);
+    }
+
+    /**
+     * Сохранение результатов сниффера
+     */
+    public function storeSnifferResults(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'files' => 'required|array',
+            'totals' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response(['errors' => $validator->errors()], 422);
+        }
+
+        // Создаем тест типа "sniffer"
+        $test = Test::create([
+            'type' => 'sniffer',
+            'name' => 'Sniffer Analysis',
+            'status' => 'completed',
+            'result' => $request->all(),
+        ]);
+
+        return response($test, 201);
     }
 }
