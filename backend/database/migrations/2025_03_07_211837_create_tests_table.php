@@ -15,6 +15,7 @@ return new class extends Migration
             $table->id();
             $table->timestamps();
             $table->string('name'); // Название теста
+            $table->string('type'); // CRUD, sniffer, load, etc...
             $table->text('description')->nullable(); // Описание теста
             $table->enum('status', ['pending', 'running', 'completed', 'failed'])->default('pending'); // Статус теста
             $table->float('execution_time')->nullable(); // Время выполнения
