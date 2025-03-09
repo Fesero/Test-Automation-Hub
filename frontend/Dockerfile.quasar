@@ -1,0 +1,21 @@
+FROM node:18
+
+WORKDIR /app
+
+# Устанавливаем зависимости для нативных модулей
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    python3 \
+    inotify-tools
+
+# Устанавливаем Quasar CLI
+RUN npm install -g @quasar/cli@latest
+
+# Копируем зависимости
+COPY package*.json ./
+# Копируем код
+COPY . .
+
+RUN npm install
+
+CMD ["npm", "run", "dev"]
