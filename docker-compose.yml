@@ -42,6 +42,22 @@ services:
     volumes:
       - redis:/data
 
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile.quasar
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./frontend:/app  # Монтируем код хоста в контейнер
+      - /app/node_modules  # Анонимный том для node_modules
+    environment:
+      - VITE_API_URL=http://app:8000/api
+    depends_on:
+      - app
+    command: quasar dev --poll
+
 volumes:
   postgres:
   redis:
+  node_modules:

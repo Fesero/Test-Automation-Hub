@@ -9,4 +9,12 @@ class Test extends Model
 {
     /** @use HasFactory<\Database\Factories\TestFactory> */
     use HasFactory;
+
+    protected $casts = [
+        'result' => 'array',
+    ];
+
+    protected $fillable = [
+        'name', 'description', 'status', 'execution_time', 'result',
+    ];
 }
