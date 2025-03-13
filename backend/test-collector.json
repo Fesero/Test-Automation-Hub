@@ -1,0 +1,10 @@
+{
+    "paths": ["app", "database"],
+    "exclude": ["vendor", "node_modules"],
+    "standart": "PSR12",
+    "severity": 8,
+    "api": {
+        "endpoint": "http://localhost:8000/api/tests/sniffer-results",
+        "token": "secret"
+    }
+}
