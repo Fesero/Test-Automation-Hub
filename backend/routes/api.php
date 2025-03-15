@@ -16,5 +16,8 @@ Route::prefix('tests')->group(function () {
     Route::delete('/{test}', [TestController::class, 'destroy']);
 
     // Для сниффера
-    Route::post('/sniffer-results', [TestController::class, 'storeSnifferResults']);
+    Route::post('/sniffer', [TestController::class, 'storeSnifferResults']);
+
+    // Для PHPStan
+    Route::post('/phpstan', [TestController::class, 'storePHPStanResults']);
 });
