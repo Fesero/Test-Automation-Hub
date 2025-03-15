@@ -29,5 +29,5 @@ export interface TestResult {
         }
         files: Record<string, FileInfo>
     }
-    types: 'sniffer'
+    type: string
 }
