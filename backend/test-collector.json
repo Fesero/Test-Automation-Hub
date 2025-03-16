@@ -1,0 +1,10 @@
+{
+    "paths": ["app", "database", "config"],
+    "exclude": ["vendor", "node_modules"],
+    "standart": "PSR12",
+    "severity": 5,
+    "api": {
+        "base_url": "http://localhost:8000/api",
+        "token": "secret"
+    }
+}

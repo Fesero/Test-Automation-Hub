@@ -100,4 +100,28 @@ class TestController extends Controller
 
         return response($test, 201);
     }
+
+    /**
+     * Сохранение результатов PHPStan
+     */
+    public function storePHPStanResults(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'files' => 'required|array',
+            'totals' => 'required|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response(['errors' => $validator->errors()], 422);
+        }
+
+        $test = Test::create([
+            'type' => 'static_analysis',
+            'name' => 'PHPStan Analysis',
+            'status' => 'completed',
+            'result' => $request->all(),
+        ]);
+
+        return response($test, 201);
+    }
 }

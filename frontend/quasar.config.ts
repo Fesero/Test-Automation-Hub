@@ -2,6 +2,7 @@
 // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file
 
 import { defineConfig } from '#q-app/wrappers';
+import path from 'path';
 import { createPinia } from 'pinia';
 
 export default defineConfig((/* ctx */) => {
@@ -64,12 +65,22 @@ export default defineConfig((/* ctx */) => {
       // polyfillModulePreload: true,
       // distDir
 
+      alias: {
+        types: path.join(__dirname, "src/types")
+      },
+
       extendViteConf (viteConf) {
         viteConf = {
           server: {
             hmr: {
               port: 9000,
               clientPort: 9000,
+            }
+          },
+          resolve: {
+            alias: {
+              ...viteConf.resolve?.alias,
+              types: path.resolve(__dirname, "./src/types")
             }
           }
         }
