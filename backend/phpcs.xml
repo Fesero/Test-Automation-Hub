@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<ruleset name="PHP_CodeSniffer">
+    <description>PHP_CodeSniffer configuration for the project</description>
+
+    <!-- Используем PSR-12 как базовый стандарт -->
+    <rule ref="PSR12"/>
+
+    <!-- Отключаем правила, связанные с пустыми строками -->
+    <rule ref="PSR12">
+        <exclude name="PSR12.ControlStructures.ControlStructureSpacing"/>
+        <exclude name="PSR12.Classes.ClassInstantiation"/>
+        <exclude name="PSR12.Files.FileHeader"/>
+    </rule>
+
+    <!-- Отключаем правила форматирования -->
+    <rule ref="Generic.WhiteSpace">
+        <exclude name="Generic.WhiteSpace.ScopeIndent"/>
+        <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+    </rule>
+
+    <!-- Важные правила для безопасности -->
+    <rule ref="Security">
+        <exclude name="Security.CrossSiteScripting"/>
+    </rule>
+
+    <!-- Правила для качества кода -->
+    <rule ref="Generic.CodeAnalysis">
+        <exclude name="Generic.CodeAnalysis.EmptyStatement"/>
+        <exclude name="Generic.CodeAnalysis.ForLoopWithTestFunctionCall"/>
+    </rule>
+
+    <!-- Правила для именования -->
+    <rule ref="Generic.NamingConventions">
+        <exclude name="Generic.NamingConventions.ConstructorName"/>
+    </rule>
+
+    <!-- Игнорируем определенные директории -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/storage/*</exclude-pattern>
+
+    <!-- Настройки для проверки -->
+    <arg name="colors"/>
+    <arg value="p"/>
+    <arg value="s"/>
+    <arg value="n"/>
+    <arg value="w"/>
+</ruleset> 

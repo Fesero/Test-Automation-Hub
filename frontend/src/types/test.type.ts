@@ -1,10 +1,10 @@
 export interface Message {
-    type: 'ERROR' | 'WARNING' | 'INFO'
     message: string
-    line?: number
-    column?: number
-    source?: string
-    fixable?: boolean
+    source: string
+    severity: 'error' | 'warning'
+    fixable: boolean
+    line: number
+    column: number
 }
 
 export interface FileResult {

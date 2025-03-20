@@ -4,6 +4,7 @@
       <q-spinner-dots color="primary" size="40px" />
     </div>
     <template v-else>
+      <OverallSummary :tests="tests" />
       <StatisticsCards :tests="tests" />
       <QuickActions
         v-model:filter-type="filterType"
@@ -92,6 +93,7 @@ import TestsTable from 'components/tests/visualizations/TestsTable.vue'
 import HeatMap from 'components/tests/visualizations/HeatMap.vue'
 import BubbleChart from 'components/tests/visualizations/BubbleChart.vue'
 import TestDetails from 'components/tests/details/TestDetails.vue'
+import OverallSummary from 'components/tests/dashboard/OverallSummary.vue'
 
 const testStore = useTestStore()
 const { tests, loading } = storeToRefs(testStore)

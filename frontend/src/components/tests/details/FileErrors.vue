@@ -84,14 +84,14 @@ defineEmits<{
 }>()
 
 const msgTypeIcon = (msg: Message) => {
-  if (msg.type === 'ERROR') return 'error'
-  if (msg.type === 'WARNING') return 'warning'
+  if (msg.severity === 'error') return 'error'
+  if (msg.severity === 'warning') return 'warning'
   return 'info'
 }
 
 const msgTypeColor = (msg: Message) => {
-  if (msg.type === 'ERROR') return 'red'
-  if (msg.type === 'WARNING') return 'orange'
+  if (msg.severity === 'error') return 'red'
+  if (msg.severity === 'warning') return 'orange'
   return 'grey'
 }
 </script>

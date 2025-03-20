@@ -79,11 +79,23 @@ const emit = defineEmits<{
 const selected = ref<TestResult[]>([])
 
 const formattedTests = computed(() => 
-  props.tests.map(test => ({
-    ...test,
-    errors: test.result?.totals?.errors || 0,
-    warnings: test.result?.totals?.warnings || 0
-  }))
+  props.tests.map(test => {
+    let errors = 0
+    let warnings = 0
+
+    if (test.result?.files) {
+      Object.values(test.result.files).forEach(file => {
+        errors += file.errors || 0
+        warnings += file.warnings || 0
+      })
+    }
+
+    return {
+      ...test,
+      errors,
+      warnings
+    }
+  })
 )
 
 const columns: QTableColumn[] = [

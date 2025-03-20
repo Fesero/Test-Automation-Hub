@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Test;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 
 class TestController extends Controller
 {
@@ -81,24 +82,46 @@ class TestController extends Controller
      */
     public function storeSnifferResults(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'files' => 'required|array',
-            'totals' => 'required|array',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required|array',
+                'totals' => 'required|array',
+            ]);
 
-        if ($validator->fails()) {
-            return response(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                Log::warning('Validation failed for sniffer results', [
+                    'errors' => $validator->errors()->toArray(),
+                    'request_data' => $request->all()
+                ]);
+                return response([
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Создаем тест типа "sniffer"
+            $test = Test::create([
+                'type' => 'sniffer',
+                'name' => 'Sniffer Analysis',
+                'status' => 'completed',
+                'result' => $request->all(),
+            ]);
+
+            return response($test, 201);
+        } catch (\Exception $e) {
+            Log::error('Error storing sniffer results', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return response([
+                'message' => 'Error storing sniffer results',
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-
-        // Создаем тест типа "sniffer"
-        $test = Test::create([
-            'type' => 'sniffer',
-            'name' => 'Sniffer Analysis',
-            'status' => 'completed',
-            'result' => $request->all(),
-        ]);
-
-        return response($test, 201);
     }
 
     /**
@@ -106,22 +129,44 @@ class TestController extends Controller
      */
     public function storePHPStanResults(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'files' => 'required|array',
-            'totals' => 'required|array',
-        ]);
+        try {
+            $validator = Validator::make($request->all(), [
+                'files' => 'required|array',
+                'totals' => 'required|array',
+            ]);
 
-        if ($validator->fails()) {
-            return response(['errors' => $validator->errors()], 422);
+            if ($validator->fails()) {
+                Log::warning('Validation failed for PHPStan results', [
+                    'errors' => $validator->errors()->toArray(),
+                    'request_data' => $request->all()
+                ]);
+                return response([
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $test = Test::create([
+                'type' => 'static_analysis',
+                'name' => 'PHPStan Analysis',
+                'status' => 'completed',
+                'result' => $request->all(),
+            ]);
+
+            return response($test, 201);
+        } catch (\Exception $e) {
+            Log::error('Error storing PHPStan results', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'request_data' => $request->all()
+            ]);
+
+            return response([
+                'message' => 'Error storing PHPStan results',
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
         }
-
-        $test = Test::create([
-            'type' => 'static_analysis',
-            'name' => 'PHPStan Analysis',
-            'status' => 'completed',
-            'result' => $request->all(),
-        ]);
-
-        return response($test, 201);
     }
 }
