@@ -15,6 +15,6 @@ class Test extends Model
     ];
 
     protected $fillable = [
-        'name', 'description', 'status', 'execution_time', 'result', 'type'
+        'name', 'project_name', 'description', 'status', 'execution_time', 'result', 'type'
     ];
 }

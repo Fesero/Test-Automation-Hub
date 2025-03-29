@@ -1,112 +1,203 @@
 <template>
-  <q-card class="overall-summary q-mb-lg" flat bordered>
-    <q-card-section class="bg-primary text-white">
-      <div class="text-h6">Общая сводка</div>
-      <div class="text-subtitle2">Статистика по всем тестам</div>
-    </q-card-section>
-    <q-card-section>
-      <div class="row q-col-gutter-md">
-        <div class="col-12 col-md-4">
-          <div class="stat-box">
-            <div class="text-subtitle2 text-grey-7">Всего ошибок</div>
-            <div class="text-h4 text-negative">
-              {{ totalErrors }}
-              <q-icon name="error_outline" class="q-ml-sm" />
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4">
-          <div class="stat-box">
-            <div class="text-subtitle2 text-grey-7">Всего предупреждений</div>
-            <div class="text-h4 text-warning">
-              {{ totalWarnings }}
-              <q-icon name="warning_amber" class="q-ml-sm" />
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-4">
-          <div class="stat-box">
-            <div class="text-subtitle2 text-grey-7">Проверено файлов</div>
-            <div class="text-h4 text-primary">
-              {{ totalFiles }}
-              <q-icon name="folder" class="q-ml-sm" />
-            </div>
-          </div>
-        </div>
+  <q-card class="modern-card q-mb-lg">
+    <div class="row no-wrap items-center q-px-lg q-pt-lg">
+      <div>
+        <div class="text-h6 q-mb-xs">Обзор производительности</div>
+        <div class="text-grey-8">Анализ результатов тестирования и метрики</div>
       </div>
-
-      <div class="row q-mt-md">
-        <div class="col-12 col-md-6">
-          <div class="text-subtitle2 text-grey-7 q-mb-sm">Топ проблемных файлов</div>
-          <div class="top-files">
-            <div v-for="file in topErrorFiles" :key="file.path" class="file-stat q-mb-md">
-              <div 
-                class="row items-center justify-between cursor-pointer"
-                @click="selectFile(file.path)"
-              >
-                <div class="col">
-                  <div class="text-subtitle2">{{ file.path.split('\\').pop() }}</div>
-                  <div class="text-caption text-grey">{{ file.path }}</div>
-                </div>
-                <div class="col-auto">
-                  <q-chip color="negative" text-color="white" dense>
-                    {{ file.errors }} ошибок
-                  </q-chip>
-                  <q-chip color="warning" text-color="white" dense class="q-ml-sm">
-                    {{ file.warnings }} предупреждений
-                  </q-chip>
-                </div>
-              </div>
-              <q-linear-progress
-                :value="file.errors / maxErrors"
-                color="negative"
-                class="q-mt-xs"
-              />
-            </div>
-          </div>
-        </div>
-        <div class="col-12 col-md-6">
-          <div class="text-subtitle2 text-grey-7 q-mb-sm">Распределение проблем</div>
-          <div class="chart-container">
-            <canvas ref="chartRef"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <!-- Ошибки выбранного файла -->
-      <div v-if="selectedFile" class="q-mt-lg">
-        <div class="row items-center justify-between q-mb-md">
-          <div class="text-subtitle2 text-grey-7">Ошибки в файле: {{ selectedFile.split('\\').pop() }}</div>
-          <q-btn flat round icon="close" @click="selectedFile = null" />
-        </div>
-        <q-list bordered separator>
-          <q-item v-for="(msg, index) in selectedFileMessages" :key="index" class="error-item">
-            <q-item-section avatar>
-              <q-avatar :color="msg.severity === 'error' ? 'red-2' : 'orange-2'" :text-color="msg.severity === 'error' ? 'red' : 'orange'">
-                <q-icon :name="msg.severity === 'error' ? 'error' : 'warning'" />
-              </q-avatar>
-            </q-item-section>
-            <q-item-section>
-              <q-item-label class="text-weight-medium">{{ msg.message }}</q-item-label>
-              <q-item-label caption>
-                <div class="row items-center q-gutter-x-md">
-                  <span>
-                    <q-icon name="code" size="xs" class="q-mr-xs" />
-                    Строка: {{ msg.line }}
-                  </span>
-                  <span v-if="msg.column">
-                    <q-icon name="straighten" size="xs" class="q-mr-xs" />
-                    Колонка: {{ msg.column }}
-                  </span>
-                  <span v-if="msg.source" class="text-grey-7">
-                    <q-icon name="label" size="xs" class="q-mr-xs" />
-                    {{ msg.source }}
-                  </span>
-                </div>
-              </q-item-label>
-            </q-item-section>
+      <q-space />
+      <q-btn-dropdown flat color="primary" label="Последние 30 дней">
+        <q-list>
+          <q-item clickable v-close-popup>
+            <q-item-section>Последние 7 дней</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup>
+            <q-item-section>Последние 30 дней</q-item-section>
+          </q-item>
+          <q-item clickable v-close-popup>
+            <q-item-section>Последние 90 дней</q-item-section>
           </q-item>
         </q-list>
+      </q-btn-dropdown>
+    </div>
+    
+    <q-card-section>
+      <div class="row q-col-gutter-md">
+        <!-- Stats overview -->
+        <div class="col-12 col-md-4">
+          <q-card flat class="modern-card bg-blue-1 full-height">
+            <q-card-section>
+              <div class="text-subtitle1 text-primary q-mb-sm">Всего проблем</div>
+              
+              <div class="text-h3 text-weight-bold q-mb-md">
+                {{ totalErrors + totalWarnings }}
+              </div>
+              
+              <div class="row q-col-gutter-lg">
+                <div class="col-6">
+                  <div class="text-caption text-grey-8">ОШИБКИ</div>
+                  <div class="row items-center">
+                    <div class="text-h6 text-negative">{{ totalErrors }}</div>
+                    <q-icon 
+                      :name="totalErrors > previousTotalErrors ? 'arrow_upward' : 'arrow_downward'" 
+                      :color="totalErrors > previousTotalErrors ? 'negative' : 'positive'" 
+                      size="18px"
+                      class="q-ml-sm"
+                    />
+                  </div>
+                </div>
+                <div class="col-6">
+                  <div class="text-caption text-grey-8">ПРЕДУПРЕЖДЕНИЯ</div>
+                  <div class="row items-center">
+                    <div class="text-h6 text-warning">{{ totalWarnings }}</div>
+                    <q-icon 
+                      :name="totalWarnings > previousTotalWarnings ? 'arrow_upward' : 'arrow_downward'" 
+                      :color="totalWarnings > previousTotalWarnings ? 'negative' : 'positive'" 
+                      size="18px"
+                      class="q-ml-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <q-separator class="q-my-md" />
+              
+              <div class="text-subtitle2 q-mb-sm">Проанализировано файлов</div>
+              <div class="row items-center">
+                <div class="text-h5 text-secondary">{{ totalFiles }}</div>
+                <div class="text-caption text-grey q-ml-md">{{ cleanFilesPercent }}% без проблем</div>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+        
+        <!-- Distribution pie chart -->
+        <div class="col-12 col-md-4">
+          <q-card flat class="modern-card full-height">
+            <q-card-section>
+              <div class="text-subtitle2 text-grey-8 q-mb-md">Распределение проблем</div>
+              <div class="chart-container">
+                <canvas ref="chartRef"></canvas>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+        
+        <!-- Top error files -->
+        <div class="col-12 col-md-4">
+          <q-card flat class="modern-card full-height">
+            <q-card-section>
+              <div class="text-subtitle2 text-grey-8 q-mb-md">Файлы с наибольшим количеством проблем</div>
+              <div class="top-files">
+                <q-list padding class="rounded-borders">
+                  <q-item v-for="file in topErrorFiles" :key="file.path" clickable @click="selectFile(file.path)" class="q-mb-sm rounded-borders file-item" :class="selectedFile === file.path ? 'selected-file' : ''">
+                    <q-item-section>
+                      <q-item-label lines="1" class="ellipsis">
+                        {{ file.path.split('\\').pop() }}
+                      </q-item-label>
+                      <q-item-label caption class="text-grey-8 ellipsis">{{ file.path }}</q-item-label>
+                      
+                      <div class="row q-mt-xs q-gutter-x-sm">
+                        <q-badge outline color="negative">
+                          {{ file.errors }} ошибок
+                        </q-badge>
+                        <q-badge outline color="warning">
+                          {{ file.warnings }} предупреждений
+                        </q-badge>
+                      </div>
+                    </q-item-section>
+                    <q-item-section side>
+                      <q-circular-progress
+                        show-value
+                        font-size="10px"
+                        :value="calculateHealthPercent(file)"
+                        size="40px"
+                        :color="calculateHealthColor(file)"
+                        track-color="grey-3"
+                      >
+                        {{ calculateHealthPercent(file) }}%
+                      </q-circular-progress>
+                    </q-item-section>
+                  </q-item>
+                </q-list>
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </div>
+
+      <!-- Selected file details -->
+      <div v-if="selectedFile" class="q-mt-lg">
+        <q-card class="modern-card">
+          <q-card-section class="row items-center no-wrap q-pb-none">
+            <div>
+              <div class="text-subtitle1 text-weight-medium">{{ selectedFile.split('\\').pop() }}</div>
+              <div class="text-caption text-grey-8">{{ selectedFile }}</div>
+            </div>
+            <q-space />
+            <q-btn flat round icon="close" @click="selectedFile = null" />
+          </q-card-section>
+          
+          <q-separator class="q-my-md" />
+          
+          <q-card-section>
+            <div class="row q-col-gutter-md">
+              <div class="col-12 col-md-4">
+                <div class="issue-stats">
+                  <div class="row q-col-gutter-md">
+                    <div class="col-6">
+                      <q-card flat class="bg-red-1 text-center q-pa-md rounded-borders">
+                        <div class="text-subtitle1 text-grey-8">Ошибки</div>
+                        <div class="text-h4 text-negative">{{ selectedFileStats?.errors || 0 }}</div>
+                      </q-card>
+                    </div>
+                    <div class="col-6">
+                      <q-card flat class="bg-orange-1 text-center q-pa-md rounded-borders">
+                        <div class="text-subtitle1 text-grey-8">Предупреждения</div>
+                        <div class="text-h4 text-warning">{{ selectedFileStats?.warnings || 0 }}</div>
+                      </q-card>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-12 col-md-8">
+                <q-table
+                  :rows="selectedFileMessages"
+                  :columns="messageColumns"
+                  row-key="index"
+                  flat
+                  bordered
+                  wrap-cells
+                  hide-pagination
+                  :pagination="{ rowsPerPage: 0 }"
+                  class="modern-table"
+                >
+                  <template v-slot:body-cell-severity="props">
+                    <q-td :props="props">
+                      <q-badge :color="props.value === 'error' ? 'negative' : 'warning'">
+                        {{ props.value }}
+                      </q-badge>
+                    </q-td>
+                  </template>
+                  
+                  <template v-slot:body-cell-location="props">
+                    <q-td :props="props">
+                      <div class="row items-center">
+                        <q-icon name="code" size="xs" class="q-mr-xs" />
+                        Line: {{ props.row.line }}
+                        <span v-if="props.row.column" class="q-ml-sm">
+                          <q-icon name="straighten" size="xs" class="q-mr-xs" />
+                          Column: {{ props.row.column }}
+                        </span>
+                      </div>
+                    </q-td>
+                  </template>
+                </q-table>
+              </div>
+            </div>
+          </q-card-section>
+        </q-card>
       </div>
     </q-card-section>
   </q-card>
@@ -114,6 +205,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
+import type { TooltipItem } from 'chart.js'
 import {
   Chart,
   CategoryScale,
@@ -125,7 +217,7 @@ import {
   DoughnutController,
   ArcElement
 } from 'chart.js'
-import type { TestResult, Message } from 'src/types/test.type' // eslint-disable-line @typescript-eslint/no-unused-vars
+import type { TestResult } from 'src/types/test.type'
 
 Chart.register(
   CategoryScale,
@@ -138,63 +230,74 @@ Chart.register(
   ArcElement
 )
 
-const props = defineProps<{
+interface Props {
   tests: TestResult[]
-}>()
+}
+
+const props = defineProps<Props>()
 
 const chartRef = ref<HTMLCanvasElement | null>(null)
 let chart: Chart | null = null
 
 const selectedFile = ref<string | null>(null)
 
+// Message columns for the table
+const messageColumns = [
+  { name: 'severity', label: 'Уровень', field: 'severity', align: 'left' as const },
+  { name: 'location', label: 'Расположение', field: 'line', align: 'left' as const },
+  { name: 'message', label: 'Сообщение', field: 'message', align: 'left' as const }
+]
+
 const selectedFileMessages = computed(() => {
   if (!selectedFile.value) return []
   
-  // Ищем сообщения во всех тестах для выбранного файла
+  // Find messages in all tests for the selected file
   for (const test of props.tests) {
     if (test.result?.files?.[selectedFile.value]) {
-      return test.result.files[selectedFile.value]!.messages || []
+      const messages = test.result.files[selectedFile.value]!.messages || []
+      return messages.map((msg, index) => ({...msg, index}))
     }
   }
   
   return []
 })
 
+const selectedFileStats = computed(() => {
+  if (!selectedFile.value) return null
+  return fileStats.value[selectedFile.value] || null
+})
+
 const selectFile = (filePath: string) => {
   selectedFile.value = filePath
 }
 
-// Агрегированная статистика по файлам
+// Aggregated statistics for files
 const fileStats = computed(() => {
   const stats: Record<string, { errors: number, warnings: number }> = {}
   
-  console.log('Tests:', props.tests)
-  
   props.tests.forEach(test => {
-    console.log('Test result:', test.result)
     if (test.result?.files) {
       Object.entries(test.result.files).forEach(([path, file]) => {
-        console.log('File:', path, file)
-        // Инициализируем статистику для файла
-        const fileStats = { errors: 0, warnings: 0 }
-        stats[path] = fileStats
+        // Initialize file stats
+        if (!stats[path]) {
+          stats[path] = { errors: 0, warnings: 0 }
+        }
         
-        // Подсчитываем ошибки и предупреждения
+        // Count errors and warnings
         if (file.errors) {
-          fileStats.errors = file.errors
+          stats[path].errors += file.errors
         }
         if (file.warnings) {
-          fileStats.warnings = file.warnings
+          stats[path].warnings += file.warnings
         }
       })
     }
   })
   
-  console.log('Final stats:', stats)
   return stats
 })
 
-// Топ файлов с ошибками
+// Top files with errors
 const topErrorFiles = computed(() => {
   return Object.entries(fileStats.value)
     .map(([path, stats]) => ({
@@ -202,16 +305,27 @@ const topErrorFiles = computed(() => {
       errors: stats.errors,
       warnings: stats.warnings
     }))
-    .sort((a, b) => b.errors - a.errors)
+    .sort((a, b) => (b.errors + b.warnings) - (a.errors + a.warnings))
     .slice(0, 5)
 })
 
-const maxErrors = computed(() => {
-  const max = Math.max(...topErrorFiles.value.map(f => f.errors))
-  return max || 1
-})
+// Calculate health percentage for a file
+const calculateHealthPercent = (file: {errors: number, warnings: number}) => {
+  const totalIssues = file.errors * 2 + file.warnings
+  const maxPossibleIssues = 20 // Arbitrary max value for percentage calculation
+  const healthPercent = Math.max(0, 100 - (totalIssues / maxPossibleIssues) * 100)
+  return Math.round(healthPercent)
+}
 
-// Общая статистика
+// Calculate health color based on percentage
+const calculateHealthColor = (file: {errors: number, warnings: number}) => {
+  const percent = calculateHealthPercent(file)
+  if (percent >= 70) return 'positive'
+  if (percent >= 40) return 'warning'
+  return 'negative'
+}
+
+// Overall statistics
 const totalErrors = computed(() => {
   return Object.values(fileStats.value).reduce((sum, stats) => sum + stats.errors, 0)
 })
@@ -222,6 +336,18 @@ const totalWarnings = computed(() => {
 
 const totalFiles = computed(() => {
   return Object.keys(fileStats.value).length
+})
+
+// Some previous metrics for comparison (sample data)
+const previousTotalErrors = computed(() => Math.round(totalErrors.value * 0.8))
+const previousTotalWarnings = computed(() => Math.round(totalWarnings.value * 1.2))
+
+// Clean files percentage
+const cleanFilesPercent = computed(() => {
+  if (totalFiles.value === 0) return 0
+  const filesWithIssues = Object.values(fileStats.value).filter(f => f.errors > 0 || f.warnings > 0).length
+  const cleanFiles = totalFiles.value - filesWithIssues
+  return Math.round((cleanFiles / totalFiles.value) * 100)
 })
 
 const createChart = () => {
@@ -237,90 +363,79 @@ const createChart = () => {
   chart = new Chart(chartRef.value, {
     type: 'doughnut',
     data: {
-      labels: ['С ошибками', 'С предупреждениями', 'Чистые'],
+      labels: ['Файлы с ошибками', 'Файлы с предупреждениями', 'Чистые файлы'],
       datasets: [{
         data: [filesWithErrors, filesWithWarnings, cleanFiles],
-        backgroundColor: ['#ff6b6b', '#ffd93d', '#6bff6b']
+        backgroundColor: ['#D50000', '#FFD600', '#00C853'],
+        borderWidth: 0
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      cutout: '70%',
       plugins: {
         legend: {
-          position: 'bottom'
+          position: 'bottom',
+          labels: {
+            padding: 20,
+            usePointStyle: true,
+            pointStyle: 'circle'
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (tooltipItem: TooltipItem<'doughnut'>) => {
+              const label = tooltipItem.label || '';
+              const rawValue = tooltipItem.raw as number;
+              const percentage = totalFiles ? Math.round((rawValue / totalFiles) * 100) : 0;
+              return `${label}: ${rawValue} (${percentage}%)`;
+            }
+          }
         }
       }
     }
   })
 }
 
-onMounted(createChart)
-watch(() => props.tests, createChart, { deep: true })
+// Update chart when data changes
+watch(() => props.tests, () => {
+  createChart()
+}, { deep: true })
+
+onMounted(() => {
+  createChart()
+})
 
 onUnmounted(() => {
-  if (chart) {
-    chart.destroy()
-    chart = null
-  }
+  chart?.destroy()
 })
 </script>
 
 <style scoped lang="scss">
-.overall-summary {
-  border-radius: 12px;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-  }
-}
-
-.stat-box {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-  text-align: center;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: translateY(-2px);
-    background: #f1f3f5;
-  }
-}
-
 .chart-container {
-  height: 300px;
-  padding: 16px;
+  position: relative;
+  height: 260px;
+  max-width: 100%;
 }
 
-.top-files {
-  background: #f8f9fa;
-  border-radius: 8px;
-  padding: 16px;
-}
-
-.file-stat {
-  background: white;
-  border-radius: 8px;
-  padding: 12px;
-  transition: all 0.3s ease;
+.file-item {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
   
   &:hover {
-    transform: translateX(4px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background-color: rgba(0, 0, 0, 0.02);
   }
-
-  .cursor-pointer {
-    cursor: pointer;
+  
+  &.selected-file {
+    background-color: rgba(var(--q-primary), 0.08);
+    border-color: rgba(var(--q-primary), 0.2);
   }
 }
 
-.error-item {
-  transition: all 0.3s ease;
-
-  &:hover {
-    background: rgba(var(--q-primary), 0.03);
-  }
+.ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 </style> 

@@ -1,0 +1,282 @@
+// app global css in SCSS form
+
+// Modern typography
+body {
+  font-family: 'Inter', 'Roboto', sans-serif;
+  background-color: $background-light;
+  color: $text-primary;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+}
+
+// Modern card styling
+.modern-card {
+  border-radius: $border-radius;
+  box-shadow: $card-shadow;
+  transition: $transition-default;
+  overflow: hidden;
+  background-color: $background-white;
+  border: 1px solid $border-color;
+  backdrop-filter: blur(10px);
+  
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+  }
+}
+
+// Dashboard stats card
+.stats-card {
+  border-radius: $border-radius;
+  padding: 24px;
+  height: 100%;
+  background: var(--background-gradient);
+  position: relative;
+  overflow: hidden;
+  border: none;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
+    pointer-events: none;
+  }
+  
+  &__title {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+  
+  &__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+  
+  &__trend {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    
+    .q-icon {
+      margin-right: 4px;
+      font-size: 1.1em;
+    }
+    
+    &--up {
+      color: rgba(255, 255, 255, 0.9);
+    }
+    
+    &--down {
+      color: rgba(255, 255, 255, 0.9);
+    }
+  }
+  
+  &__chart {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    opacity: 0.4;
+    width: 100%;
+    height: 40px;
+  }
+}
+
+// Modern table styling
+.modern-table {
+  border-radius: $border-radius;
+  overflow: hidden;
+  box-shadow: $card-shadow;
+  background-color: $background-white;
+  border: 1px solid $border-color;
+  
+  .q-table {
+    &__card {
+      border-radius: $border-radius;
+    }
+    
+    thead tr th {
+      font-weight: 600;
+      color: $text-secondary;
+      background-color: $background-light;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 16px;
+    }
+    
+    tbody tr {
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      
+      &:hover {
+        background-color: $hover-color;
+      }
+      
+      &.selected {
+        background-color: $selected-color;
+      }
+      
+      td {
+        padding: 16px;
+      }
+    }
+  }
+}
+
+// Tabs styling
+.modern-tabs {
+  background: $glass-background;
+  backdrop-filter: blur(10px);
+  border-radius: $border-radius;
+  padding: 4px;
+  box-shadow: $glass-shadow;
+  border: 1px solid $glass-border;
+  
+  .q-tab {
+    padding: 0.75rem 1.5rem;
+    min-height: 48px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    
+    &__label {
+      font-weight: 500;
+      color: $text-secondary;
+      font-size: 0.875rem;
+    }
+    
+    &--active {
+      background: $gradient-primary;
+      
+      .q-tab__label {
+        font-weight: 600;
+        color: white;
+      }
+    }
+  }
+}
+
+// Status badges
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  
+  &--pending {
+    background-color: rgba($warning, 0.1);
+    color: darken($warning, 10%);
+  }
+  
+  &--running {
+    background-color: rgba($info, 0.1);
+    color: darken($info, 10%);
+  }
+  
+  &--completed {
+    background-color: rgba($positive, 0.1);
+    color: darken($positive, 10%);
+  }
+  
+  &--failed {
+    background-color: rgba($negative, 0.1);
+    color: darken($negative, 10%);
+  }
+}
+
+// Custom scrollbar
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: $background-light;
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $border-color;
+  border-radius: 10px;
+  transition: background-color 0.2s ease;
+  
+  &:hover {
+    background: $text-secondary;
+  }
+}
+
+// Animations
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active, .slide-up-leave-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+// Page transitions
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+// Glass effect components
+.glass-card {
+  background: $glass-background;
+  backdrop-filter: blur(10px);
+  border: 1px solid $glass-border;
+  box-shadow: $glass-shadow;
+  border-radius: $border-radius;
+}
+
+// Premium button styles
+.premium-btn {
+  background: $gradient-primary;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 24px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}

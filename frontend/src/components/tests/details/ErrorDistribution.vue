@@ -67,10 +67,9 @@ const createChart = () => {
   if (!chartRef.value) return
 
   chart?.destroy()
-
   const totalFiles = Object.keys(props.files).length
-  const filesWithErrors = Object.values(props.files).filter(f => f.errors > 0).length
-  const filesWithWarnings = Object.values(props.files).filter(f => f.warnings > 0 && f.errors === 0).length
+  const filesWithErrors = Object.values(props.files).filter((f): f is FileResult => true).filter(f => (f.errors ?? 0) > 0).length
+  const filesWithWarnings = Object.values(props.files).filter((f): f is FileResult => true).filter(f => ((f.warnings ?? 0) > 0) && ((f.errors ?? 0) === 0)).length
   const cleanFiles = totalFiles - filesWithErrors - filesWithWarnings
 
   chart = new Chart(chartRef.value, {
@@ -102,15 +101,14 @@ const topErrorFiles = computed(() => {
   return Object.entries(props.files)
     .map(([path, data]) => ({
       path,
-      errors: data.errors || 0
+      errors: data.errors ?? 0
     }))
     .filter(file => file.errors > 0)
     .sort((a, b) => b.errors - a.errors)
     .slice(0, 5)
 })
-
 const maxErrors = computed(() => {
-  const max = Math.max(...topErrorFiles.value.map(f => f.errors))
+  const max = Math.max(...topErrorFiles.value.map((f: { errors: number }) => f.errors))
   return max || 1
 })
 </script>

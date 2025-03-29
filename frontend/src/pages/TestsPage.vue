@@ -16,11 +16,12 @@
 
       <q-tabs 
         v-model="viewMode" 
-        class="view-tabs q-mb-lg"
+        class="view-tabs q-mb-lg modern-tabs"
         active-color="primary"
         indicator-color="primary"
         align="left"
         narrow-indicator
+        dense
       >
         <q-tab name="table">
           <q-item-section avatar>
@@ -49,33 +50,33 @@
             <q-badge color="accent" floating>{{ Object.keys(aggregatedFiles).length }}</q-badge>
           </q-item-section>
         </q-tab>
+        <q-tab name="analytics">
+          <q-item-section avatar>
+            <q-icon name="analytics" />
+          </q-item-section>
+          <q-item-section>
+            Аналитика
+            <q-badge color="purple" floating>{{ tests.length }}</q-badge>
+          </q-item-section>
+        </q-tab>
       </q-tabs>
 
-      <HeatMap 
-        v-if="viewMode === 'heatmap'" 
-        :files="aggregatedFiles"
-        @select-file="showFileFromMap"
-      />
-
-      <TestsTable 
-        v-if="viewMode === 'table'"
-        :tests="formattedTests"
-        :loading="loading"
-        v-model:selected="selectedTest"
-        @row-click="showDetails"
-      />
-
-      <BubbleChart
-        v-if="viewMode === 'bubble'"
-        :files="aggregatedFiles"
-        @select-file="showFileFromMap"
-      />
-
-      <TestDetails
-        v-if="currentTest"
-        :test="currentTest"
-        @close="selectedTest = []"
-      />
+      <div class="content-container">
+        <component
+          :is="currentView"
+          :tests="formattedTests"
+          :aggregated-files="aggregatedFiles"
+          @select-file="onSelectFile"
+          @row-click="onRowClick"
+        />
+        
+        <TestDetails
+          v-if="selectedTest"
+          :test="selectedTest"
+          @close="selectedTest = null"
+          class="q-mt-lg"
+        />
+      </div>
     </template>
   </q-page>
 </template>
@@ -86,18 +87,23 @@ import { storeToRefs } from 'pinia'
 import { useTestStore } from 'stores/testStore'
 import type { TestResult } from 'src/types/test.type'
 
+defineOptions({
+  name: 'TestsPage'
+})
+
 // Импортируем компоненты
 import StatisticsCards from 'components/tests/dashboard/StatisticsCards.vue'
 import QuickActions from 'components/tests/dashboard/QuickActions.vue'
 import TestsTable from 'components/tests/visualizations/TestsTable.vue'
 import HeatMap from 'components/tests/visualizations/HeatMap.vue'
 import BubbleChart from 'components/tests/visualizations/BubbleChart.vue'
-import TestDetails from 'components/tests/details/TestDetails.vue'
 import OverallSummary from 'components/tests/dashboard/OverallSummary.vue'
+import TestAnalytics from 'components/tests/analytics/Analytics.vue'
+import TestDetails from 'components/tests/details/TestDetails.vue'
 
 const testStore = useTestStore()
 const { tests, loading } = storeToRefs(testStore)
-const selectedTest = ref<TestResult[]>([])
+const selectedTest = ref<TestResult | null>(null)
 const filterType = ref('Все')
 const dateRange = ref('')
 const viewMode = ref('table')
@@ -116,14 +122,16 @@ onMounted(async () => {
 const aggregatedFiles = computed(() => {
   const files: Record<string, { errors: number, warnings: number }> = {};
   
-  tests.value.forEach(test => {
+  tests.value.forEach((test: TestResult) => {
     if (test.result?.files) {
       Object.entries(test.result.files).forEach(([path, data]) => {
         if (!files[path]) {
           files[path] = { errors: 0, warnings: 0 };
         }
-        files[path].errors += data.errors || 0;
-        files[path].warnings += data.warnings || 0;
+        if (data && typeof data === 'object' && 'errors' in data && 'warnings' in data) {
+          files[path].errors += data.errors || 0;
+          files[path].warnings += data.warnings || 0;
+        }
       });
     }
   });
@@ -134,34 +142,16 @@ const aggregatedFiles = computed(() => {
 // Фильтрация тестов
 const filteredTests = computed(() => {
   if (filterType.value === 'Все') return tests.value
-  return tests.value.filter(t => t.type === filterType.value)
+  return tests.value.filter((t: TestResult) => t.type === filterType.value)
 })
 
-// Форматирование тестов для таблицы
 const formattedTests = computed(() => 
-  filteredTests.value.map(test => ({
+  filteredTests.value.map((test: TestResult) => ({
     ...test,
     errors: test.result?.totals?.errors || 0,
     warnings: test.result?.totals?.warnings || 0
   }))
 )
-
-const currentTest = computed(() => selectedTest.value[0] || null)
-
-// Показ деталей теста
-const showDetails = (evt: Event, row: TestResult) => {
-  selectedTest.value = [row]
-}
-
-// Показ файла из карты
-const showFileFromMap = (filePath: string) => {
-  const test = tests.value.find(t => 
-    t.result?.files && t.result.files[filePath]
-  )
-  if (test) {
-    selectedTest.value = [test]
-  }
-}
 
 // Action handlers
 const onNewTest = () => {
@@ -175,34 +165,80 @@ const onExport = () => {
 const onRefresh = async () => {
   await testStore.fetchTests()
 }
+
+const onRowClick = (evt: Event, row: TestResult) => {
+  selectedTest.value = row
+}
+
+const onSelectFile = (filePath: string) => {
+  const test = tests.value.find((t: TestResult) => 
+    t.result?.files && t.result.files[filePath]
+  )
+  if (test) {
+    selectedTest.value = test
+  }
+}
+
+const currentView = computed(() => {
+  switch (viewMode.value) {
+    case 'table':
+      return TestsTable
+    case 'heatmap':
+      return HeatMap
+    case 'bubble':
+      return BubbleChart
+    case 'analytics':
+      return TestAnalytics
+    default:
+      return TestsTable
+  }
+})
 </script>
 
 <style scoped lang="scss">
 .modern-page {
-  background: #f8f9fa;
+  background: $bg-gradient-light;
   min-height: 100vh;
-  padding: 1.5rem;
+}
+
+.content-container {
+  background: $background-white;
+  border-radius: $border-radius;
+  box-shadow: $card-shadow;
+  padding: 24px;
+  min-height: 400px;
+  position: relative;
+  z-index: 1;
 }
 
 .view-tabs {
-  background: white;
-  border-radius: 12px;
+  background: $glass-background;
+  backdrop-filter: blur(10px);
+  border-radius: $border-radius;
   padding: 4px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  box-shadow: $glass-shadow;
+  border: 1px solid $glass-border;
 
   .q-tab {
     border-radius: 8px;
-    padding: 8px 16px;
-    min-height: 48px;
-    
+    transition: all 0.3s ease;
+
     &--active {
-      background: rgba(var(--q-primary), 0.1);
+      background: $gradient-primary;
+      color: white;
+      box-shadow: $neon-shadow;
     }
 
-    .q-badge {
-      top: 4px;
-      right: 4px;
+    .q-icon {
+      font-size: 20px;
     }
   }
+}
+
+.q-badge {
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 12px;
+  box-shadow: $shadow-sm;
 }
 </style>

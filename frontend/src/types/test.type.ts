@@ -1,16 +1,16 @@
 export interface Message {
-    message: string
-    source: string
     severity: 'error' | 'warning'
-    fixable: boolean
     line: number
-    column: number
+    column?: number
+    message: string
+    source?: string
+    fixable?: boolean
 }
 
 export interface FileResult {
-    errors: number
-    warnings: number
-    messages: Message[]
+    errors?: number
+    warnings?: number
+    messages?: Message[]
 }
 
 export interface TestResultTotals {
@@ -22,13 +22,15 @@ export interface TestResultTotals {
 }
 
 export interface TestResult {
-    id: number
+    id: string
     name: string
-    type: 'sniffer' | 'static_analysis'
-    status: 'pending' | 'running' | 'completed' | 'failed'
-    execution_time: number
-    result: {
-        totals: TestResultTotals
-        files: Record<string, FileResult>
+    project_name?: string
+    type: string
+    status: 'completed' | 'failed' | 'running' | 'pending'
+    execution_time?: number
+    created_at: string
+    result?: {
+        totals?: TestResultTotals
+        files?: Record<string, FileResult>
     }
 }

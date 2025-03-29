@@ -17,19 +17,19 @@
             </q-badge>
             <q-chip 
               dense
-              :color="test.result.totals.errors > 0 ? 'negative' : 'positive'"
+              :color="(test.result?.totals?.errors ?? 0) > 0 ? 'negative' : 'positive'"
               text-color="white"
               icon="error_outline"
             >
-              {{ test.result.totals.errors }} ошибок
+              {{ test.result?.totals?.errors ?? 0 }} ошибок
             </q-chip>
             <q-chip 
               dense
-              :color="test.result.totals.warnings > 0 ? 'warning' : 'positive'"
+              :color="(test.result?.totals?.warnings ?? 0) > 0 ? 'warning' : 'positive'"
               text-color="white"
               icon="warning_amber"
             >
-              {{ test.result.totals.warnings }} предупреждений
+              {{ test.result?.totals?.warnings ?? 0 }} предупреждений
             </q-chip>
           </div>
         </div>
@@ -43,15 +43,15 @@
           <div class="progress-stats">
             <div class="text-subtitle2 q-mb-sm">Прогресс проверки</div>
             <q-linear-progress
-              :value="(test.result.totals.checked_files || 0) / (test.result.totals.total_files || 1)"
+              :value="((test.result?.totals?.checked_files ?? 0) / (test.result?.totals?.total_files ?? 1))"
               color="positive"
               class="q-mb-sm"
               style="height: 10px"
               rounded
             />
             <div class="row justify-between text-caption">
-              <span>Проверено файлов: {{ test.result.totals.checked_files || 0 }}</span>
-              <span>Всего файлов: {{ test.result.totals.total_files || 0 }}</span>
+              <span>Проверено файлов: {{ test.result?.totals?.checked_files ?? 0 }}</span>
+              <span>Всего файлов: {{ test.result?.totals?.total_files ?? 0 }}</span>
             </div>
           </div>
         </div>
@@ -70,7 +70,7 @@
               <div class="col-6">
                 <q-card flat class="stat-mini-card bg-purple-1">
                   <q-card-section class="text-center">
-                    <div class="text-h6 text-purple">{{ Object.keys(test.result.files || {}).length }}</div>
+                    <div class="text-h6 text-purple">{{ Object.keys(test.result?.files ?? {}).length }}</div>
                     <div class="text-caption">Проверено файлов</div>
                   </q-card-section>
                 </q-card>
@@ -102,7 +102,7 @@
     <q-tab-panels v-model="activeTab" animated>
       <q-tab-panel name="files" class="q-pa-none">
         <FileList 
-          :files="test.result.files"
+          :files="test.result?.files ?? {}"
           :current-file="currentFile"
           @select-file="selectFile"
           @copy-path="copyPath"
@@ -125,7 +125,7 @@
       </q-tab-panel>
 
       <q-tab-panel name="summary">
-        <ErrorDistribution :files="test.result.files" />
+        <ErrorDistribution :files="test.result?.files ?? {}" />
       </q-tab-panel>
     </q-tab-panels>
   </q-card>
@@ -170,7 +170,7 @@ const typeColor = (type: string) => {
 
 const selectFile = (filePath: string) => {
   if (props.test.result?.files?.[filePath]) {
-    currentFileErrors.value = props.test.result.files[filePath].messages
+    currentFileErrors.value = props.test.result.files[filePath].messages ?? null
     currentFile.value = filePath
     activeTab.value = 'errors'
   }

@@ -197,15 +197,15 @@ defineExpose({
       border-radius: 6px;
       
       &.errors {
-        background: linear-gradient(to right, #fff5f5, #ff0000);
+        background: linear-gradient(to right, rgba($negative, 0.1), $negative);
       }
       
       &.warnings {
-        background: linear-gradient(to right, #fff8e1, #ffa000);
+        background: linear-gradient(to right, rgba($warning, 0.1), $warning);
       }
       
       &.total {
-        background: linear-gradient(to right, #fff5f5, #bf360c);
+        background: linear-gradient(to right, rgba($primary, 0.1), $primary);
       }
     }
   }

@@ -25,10 +25,10 @@
       @click="$emit('select-file', String(filePath))"
     >
       <q-item-section avatar>
-        <q-avatar :color="fileData.errors > 0 ? 'red-2' : 'green-2'" text-color="white">
+        <q-avatar :color="(fileData.errors ?? 0) > 0 ? 'red-2' : 'green-2'" text-color="white">
           <q-icon 
             name="code" 
-            :color="fileData.errors > 0 ? 'red' : 'green'" 
+            :color="(fileData.errors ?? 0) > 0 ? 'red' : 'green'" 
           />
         </q-avatar>
       </q-item-section>
@@ -36,11 +36,11 @@
         <q-item-label>{{ String(filePath).split('\\').pop() }}</q-item-label>
         <q-item-label caption>
           <div class="row items-center q-gutter-x-sm">
-            <q-badge :color="fileData.errors > 0 ? 'negative' : 'positive'" outline>
-              {{ fileData.errors }} ошибок
+            <q-badge :color="(fileData.errors ?? 0) > 0 ? 'negative' : 'positive'" outline>
+              {{ fileData.errors ?? 0 }} ошибок
             </q-badge>
-            <q-badge :color="fileData.warnings > 0 ? 'warning' : 'positive'" outline>
-              {{ fileData.warnings }} предупреждений
+            <q-badge :color="(fileData.warnings ?? 0) > 0 ? 'warning' : 'positive'" outline>
+              {{ fileData.warnings ?? 0 }} предупреждений
             </q-badge>
             <span class="text-grey-7">{{ filePath }}</span>
           </div>
