@@ -6,49 +6,65 @@ use App\Http\Controllers\Controller;
 use App\Models\Test;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class TestController extends Controller
 {
     /**
-     * Получение всех тестов
+     * Получение списка тестов.
+     * Позволяет фильтровать по project_id.
      */
-    public function index()
-    {
-        return Test::all();
-    }
-
-    /**
-     * Создать новый тест
-     */
-    public function store(Request $request)
+    public function index(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'status' => 'nullable|in:pending,running,completed,failed',
-            'type' => 'required|in:crud,sniffer,load',
+            'project_id' => 'nullable|integer|exists:projects,id'
         ]);
 
         if ($validator->fails()) {
             return response(['errors' => $validator->errors()], 422);
         }
 
-        $test = Test::create($request->all());
+        $query = Test::query()->with('project');
 
-        return response($test, 201);
+        if ($request->filled('project_id')) {
+            $query->where('project_id', $request->input('project_id'));
+        }
+
+        return $query->get();
     }
 
     /**
-     * Получить конкретный тест
+     * Создать новый тест.
+     */
+    public function store(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'type' => 'required|in:crud,sniffer,phpstan,load',
+            'project_id' => 'required|integer|exists:projects,id'
+        ]);
+
+        if ($validator->fails()) {
+            return response(['errors' => $validator->errors()], 422);
+        }
+
+        $test = Test::create($validator->validated());
+
+        return response($test->load('project'), 201);
+    }
+
+    /**
+     * Получить конкретный тест.
      */
     public function show(Test $test)
     {
-        return $test->load('results');
+        return $test->load('project');
     }
 
     /**
-     * Обновить тест
+     * Обновить тест.
+     * Обновление project_id не разрешено.
      */
     public function update(Request $request, Test $test)
     {
@@ -56,117 +72,25 @@ class TestController extends Controller
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'nullable|in:pending,running,completed,failed',
+            'type' => 'required|in:crud,sniffer,phpstan,load',
         ]);
 
         if ($validator->fails()) {
             return response(['errors' => $validator->errors()], 422);
         }
 
-        $test->update($request->all());
+        $test->update($validator->validated());
 
-        return response($test);
+        return response($test->load('project'));
     }
 
     /**
-     * Удалить тест
+     * Удалить тест.
      */
     public function destroy(Test $test)
     {
         $test->delete();
 
         return response(['message' => 'Тест удален'], 200);
-    }
-
-    /**
-     * Сохранение результатов сниффера
-     */
-    public function storeSnifferResults(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required|array',
-                'totals' => 'required|array',
-            ]);
-
-            if ($validator->fails()) {
-                Log::warning('Validation failed for sniffer results', [
-                    'errors' => $validator->errors()->toArray(),
-                    'request_data' => $request->all()
-                ]);
-                return response([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            // Создаем тест типа "sniffer"
-            $test = Test::create([
-                'type' => 'sniffer',
-                'name' => 'Sniffer Analysis',
-                'status' => 'completed',
-                'result' => $request->all(),
-            ]);
-
-            return response($test, 201);
-        } catch (\Exception $e) {
-            Log::error('Error storing sniffer results', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-
-            return response([
-                'message' => 'Error storing sniffer results',
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
-        }
-    }
-
-    /**
-     * Сохранение результатов PHPStan
-     */
-    public function storePHPStanResults(Request $request)
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'files' => 'required|array',
-                'totals' => 'required|array',
-            ]);
-
-            if ($validator->fails()) {
-                Log::warning('Validation failed for PHPStan results', [
-                    'errors' => $validator->errors()->toArray(),
-                    'request_data' => $request->all()
-                ]);
-                return response([
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $test = Test::create([
-                'type' => 'static_analysis',
-                'name' => 'PHPStan Analysis',
-                'status' => 'completed',
-                'result' => $request->all(),
-            ]);
-
-            return response($test, 201);
-        } catch (\Exception $e) {
-            Log::error('Error storing PHPStan results', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'request_data' => $request->all()
-            ]);
-
-            return response([
-                'message' => 'Error storing PHPStan results',
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine()
-            ], 500);
-        }
     }
 }

@@ -1,12 +1,19 @@
 <?php
 
+use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TestController;
+use App\Http\Controllers\Api\TestResultController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// Роуты для Проектов
+Route::apiResource('projects', ProjectController::class);
+// Дополнительный роут для регенерации токена
+Route::post('projects/{project}/regenerate-token', [ProjectController::class, 'regenerateToken'])->name('projects.regenerateToken');
 
 Route::prefix('tests')->group(function () {
     Route::get('/', [TestController::class, 'index']);
@@ -15,9 +22,10 @@ Route::prefix('tests')->group(function () {
     Route::put('/{test}', [TestController::class, 'update']);
     Route::delete('/{test}', [TestController::class, 'destroy']);
 
-    // Для сниффера
-    Route::post('/sniffer', [TestController::class, 'storeSnifferResults']);
+    // Роут для сохранения результатов теста
+    Route::post('/{test}/results', [TestResultController::class, 'store'])->name('tests.results.store');
 
-    // Для PHPStan
-    Route::post('/phpstan', [TestController::class, 'storePHPStanResults']);
+    // Старые роуты для сохранения результатов (удалить или закомментировать)
+    // Route::post('/sniffer', [TestController::class, 'storeSnifferResults']);
+    // Route::post('/phpstan', [TestController::class, 'storePHPStanResults']);
 });
