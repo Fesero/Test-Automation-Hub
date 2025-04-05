@@ -1,463 +1,318 @@
 <template>
-  <q-page padding class="modern-page">
-    <div class="row q-col-gutter-md">
-      <!-- Project List -->
-      <div class="col-12">
-        <q-card flat bordered class="modern-card">
-          <q-card-section>
-            <div class="row items-center justify-between q-mb-md">
-              <div class="text-h6 text-primary">Проекты</div>
-              <q-btn
-                color="primary"
-                icon="add"
-                label="Новый проект"
-                class="premium-btn"
-                @click="showNewProjectDialog = true"
-              />
-            </div>
+  <q-page padding class="page-padding">
+    <div class="row items-center justify-between q-mb-lg">
+      <div class="text-h4 page-title">Проекты</div>
+      <q-btn
+        color="primary"
+        icon="add"
+        label="Новый проект"
+        unelevated 
+        @click="openNewProjectDialog"
+      />
+    </div>
 
-            <q-table
-              :rows="projects"
-              :columns="columns"
-              row-key="id"
-              flat
-              bordered
-              :pagination="{ rowsPerPage: 10 }"
-              class="modern-table"
-            >
-              <template v-slot:body-cell-status="props">
-                <q-td :props="props">
-                  <q-chip
-                    :color="getStatusColor(props.value)"
-                    text-color="white"
-                    dense
-                    class="status-badge"
-                  >
-                    {{ props.value }}
-                  </q-chip>
-                </q-td>
-              </template>
+    <!-- Loading Indicator -->
+    <div v-if="loadingProjects && projects.length === 0" class="flex flex-center q-my-xl">
+      <q-spinner-dots color="primary" size="40px" />
+    </div>
 
-              <template v-slot:body-cell-progress="props">
-                <q-td :props="props">
-                  <q-linear-progress
-                    :value="props.value / 100"
-                    :color="getProgressColor(props.value)"
-                    class="q-mt-sm"
-                    rounded
-                    size="8px"
-                  />
-                </q-td>
-              </template>
+    <!-- Error Message -->
+     <div v-else-if="error" class="text-center text-negative q-my-lg">
+      <q-icon name="error_outline" size="md" class="q-mr-sm" />
+      {{ error }}
+    </div>
 
-              <template v-slot:body-cell-actions="props">
-                <q-td :props="props">
-                  <q-btn-group flat>
-                    <q-btn
-                      flat
-                      round
-                      color="primary"
-                      icon="edit"
-                      @click="editProject(props.row)"
-                    >
-                      <q-tooltip>Редактировать</q-tooltip>
-                    </q-btn>
-                    <q-btn
-                      flat
-                      round
-                      color="negative"
-                      icon="delete"
-                      @click="deleteProject(props.row)"
-                    >
-                      <q-tooltip>Удалить</q-tooltip>
-                    </q-btn>
-                  </q-btn-group>
-                </q-td>
-              </template>
-            </q-table>
-          </q-card-section>
-        </q-card>
-      </div>
-
-      <!-- Project Statistics -->
-      <div class="col-12 col-md-4">
-        <q-card flat bordered class="modern-card">
-          <q-card-section>
-            <div class="text-h6 text-primary q-mb-md">Статистика проектов</div>
-            <div class="row q-col-gutter-md">
-              <div class="col-6">
-                <div class="text-center">
-                  <div class="text-h4 text-primary">{{ stats.totalProjects }}</div>
-                  <div class="text-caption text-grey-8">Всего проектов</div>
-                </div>
+    <!-- Project Cards Grid -->
+    <div v-else-if="projects.length > 0" class="row q-col-gutter-lg">
+      <div v-for="project in projects" :key="project.id" class="col-12 col-sm-6 col-md-4 col-lg-3">
+        <q-card class="project-card cursor-pointer" flat bordered @click="goToProjectTests(project.id)">
+          <q-card-section class="project-card__header">
+            <div class="row items-center no-wrap">
+              <div class="col">
+                <div class="text-h6 ellipsis project-card__title">{{ project.name }}</div>
+                 <div v-if="project.url" class="text-caption text-secondary ellipsis q-mt-xs">
+                     <q-icon name="link" size="xs" class="q-mr-xs"/>
+                     <a :href="project.url" target="_blank" @click.stop class="text-inherit">{{ project.url }}</a>
+                 </div>
               </div>
-              <div class="col-6">
-                <div class="text-center">
-                  <div class="text-h4 text-positive">{{ stats.activeProjects }}</div>
-                  <div class="text-caption text-grey-8">Активных</div>
-                </div>
-              </div>
-            </div>
+              <div class="col-auto">
+                 <q-btn flat round icon="more_vert" text-color="secondary">
+                   <q-menu anchor="bottom right" self="top right" class="dialog-menu">
+                     <q-list dense style="min-width: 150px">
+                       <q-item clickable v-close-popup @click.stop="editProject(project)">
+                         <q-item-section avatar><q-icon name="edit" size="xs"/></q-item-section>
+                         <q-item-section>Редактировать</q-item-section>
+                       </q-item>
+                       <q-item clickable v-close-popup @click.stop="confirmDeleteProject(project)">
+                         <q-item-section avatar><q-icon name="delete" size="xs"/></q-item-section>
+                         <q-item-section class="text-negative">Удалить</q-item-section>
+                       </q-item>
+                     </q-list>
+                   </q-menu>
+                 </q-btn>
+               </div>
+             </div>
           </q-card-section>
-        </q-card>
-      </div>
 
-      <div class="col-12 col-md-4">
-        <q-card flat bordered>
-          <q-card-section>
-            <div class="text-h6 q-mb-md">Последние изменения</div>
-            <q-list>
-              <q-item v-for="change in recentChanges" :key="change.id">
-                <q-item-section>
-                  <q-item-label>{{ change.project }}</q-item-label>
-                  <q-item-label caption>{{ change.description }}</q-item-label>
-                </q-item-section>
-                <q-item-section side>
-                  <q-item-label caption>{{ change.date }}</q-item-label>
-                </q-item-section>
-              </q-item>
-            </q-list>
-          </q-card-section>
-        </q-card>
-      </div>
+          <q-separator />
 
-      <div class="col-12 col-md-4">
-        <q-card flat bordered>
-          <q-card-section>
-            <div class="text-h6 q-mb-md">Распределение по статусам</div>
-            <div class="chart-container">
-              <canvas ref="statusChartRef"></canvas>
-            </div>
+          <q-card-section class="project-card__stats">
+             <div class="row items-center q-gutter-sm">
+                <q-icon name="assignment" color="secondary"/>
+                 <span class="text-caption text-secondary">Тестов: {{ project.tests_count ?? 0 }}</span>
+                 <span class="q-ml-auto">
+                     <q-badge 
+                        v-if="project.last_test_status" 
+                        :class="`status-badge status-badge--${project.last_test_status.toLowerCase()}`"
+                     >
+                         {{ project.last_test_status }}
+                     </q-badge>
+                     <q-badge v-else class="status-badge status-badge--default">
+                         Нет данных
+                     </q-badge>
+                 </span>
+             </div>
           </q-card-section>
+
+           <q-card-actions align="right">
+                <q-btn flat color="primary" label="К тестам" @click.stop="goToProjectTests(project.id)" />
+            </q-card-actions>
         </q-card>
       </div>
     </div>
 
-    <!-- New Project Dialog -->
-    <q-dialog v-model="showNewProjectDialog" persistent>
-      <q-card style="min-width: 350px">
-        <q-card-section>
-          <div class="text-h6">Новый проект</div>
+     <!-- No Projects Message -->
+     <div v-else class="text-center text-grey q-my-xl">
+        <q-icon name="inbox" size="lg" />
+        <div class="text-h6 q-mt-md">Проектов пока нет</div>
+        <q-btn flat color="primary" label="Создать первый проект" @click="openNewProjectDialog" class="q-mt-sm" />
+     </div>
+
+    <!-- New/Edit Project Dialog -->
+    <q-dialog v-model="showProjectDialog" persistent>
+      <q-card class="dialog-card" style="min-width: 400px">
+        <q-card-section class="dialog-header">
+          <div class="text-h6">{{ isEditMode ? 'Редактировать проект' : 'Новый проект' }}</div>
+          <q-space />
+          <q-btn icon="close" flat round dense v-close-popup />
         </q-card-section>
 
         <q-card-section>
-          <q-form @submit="onSubmit" class="q-gutter-md">
+          <q-form @submit="onSubmitProject" class="q-gutter-md">
             <q-input
-              v-model="newProject.name"
-              label="Название проекта"
-              :rules="[val => !!val || 'Обязательное поле']"
-              outlined
-              dense
+              v-model="projectForm.name"
+              label="Название проекта *"
+              :rules="[val => !!val || 'Название обязательно']"
+              outlined dense autofocus dark
             />
-
             <q-input
-              v-model="newProject.description"
-              label="Описание"
-              type="textarea"
-              outlined
-              dense
+              v-model="projectForm.url"
+              label="URL проекта (необязательно)"
+              outlined dense type="url" dark
             />
-
-            <q-select
-              v-model="newProject.status"
-              :options="['Активный', 'В разработке', 'На паузе', 'Завершен']"
-              label="Статус"
-              outlined
-              dense
-            />
-
-            <q-input
-              v-model="newProject.deadline"
-              label="Дедлайн"
-              type="date"
-              outlined
-              dense
-            />
+             <!-- Add more fields if needed -->
           </q-form>
         </q-card-section>
 
         <q-card-actions align="right">
           <q-btn flat label="Отмена" color="primary" v-close-popup />
-          <q-btn flat label="Создать" color="primary" @click="onSubmit" />
+          <q-btn flat :label="isEditMode ? 'Сохранить' : 'Создать'" color="primary" @click="onSubmitProject" :loading="submittingProject" />
         </q-card-actions>
       </q-card>
     </q-dialog>
+
+    <!-- Delete Confirmation Dialog -->
+    <q-dialog v-model="showDeleteConfirmDialog" persistent>
+        <q-card class="dialog-card">
+            <q-card-section class="row items-center dialog-warning-header">
+                 <q-icon name="warning" color="negative" size="md" class="q-mr-md"/>
+                 <span class="text-body1">Вы уверены, что хотите удалить проект "{{ projectToDelete?.name }}"?</span>
+            </q-card-section>
+             <q-card-actions align="right">
+                 <q-btn flat label="Отмена" color="primary" v-close-popup />
+                 <q-btn flat label="Удалить" color="negative" @click="deleteProjectConfirmed" :loading="deletingProject" />
+             </q-card-actions>
+        </q-card>
+    </q-dialog>
+
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
-import {
-  Chart,
-  CategoryScale,
-  LinearScale,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  DoughnutController
-} from 'chart.js'
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useQuasar } from 'quasar';
+import { storeToRefs } from 'pinia';
+import { useTestStore } from 'stores/testStore';
+import type { Project } from 'src/types/test.type';
 
 defineOptions({
-  name: 'ProjectsPage'
-})
+  name: 'ProjectsPage',
+});
 
-Chart.register(
-  CategoryScale,
-  LinearScale,
-  ArcElement,
-  Title,
-  Tooltip,
-  Legend,
-  DoughnutController
-)
+const router = useRouter();
+const $q = useQuasar();
+const testStore = useTestStore();
 
-const statusChartRef = ref<HTMLCanvasElement | null>(null)
-let statusChart: Chart | null = null
+const { projects, loading: loadingProjects, error } = storeToRefs(testStore);
 
-const columns = [
-  { name: 'name', label: 'Название', field: 'name', align: 'left' as const },
-  { name: 'description', label: 'Описание', field: 'description', align: 'left' as const },
-  { name: 'status', label: 'Статус', field: 'status', align: 'left' as const },
-  { name: 'progress', label: 'Прогресс', field: 'progress', align: 'left' as const },
-  { name: 'deadline', label: 'Дедлайн', field: 'deadline', align: 'left' as const },
-  { name: 'actions', label: 'Действия', field: 'actions', align: 'center' as const }
-]
+const showProjectDialog = ref(false);
+const showDeleteConfirmDialog = ref(false);
+const isEditMode = ref(false);
+const submittingProject = ref(false);
+const deletingProject = ref(false);
+const projectForm = ref<Partial<Project>>({ name: '', url: '' });
+const projectToDelete = ref<Project | null>(null);
 
-const projects = ref([
-  {
-    id: 1,
-    name: 'NexStep',
-    description: 'Основной проект',
-    status: 'Активный',
-    progress: 75,
-    deadline: '2024-06-30'
-  },
-  {
-    id: 2,
-    name: 'Backend API',
-    description: 'API сервер',
-    status: 'В разработке',
-    progress: 45,
-    deadline: '2024-05-15'
-  },
-  {
-    id: 3,
-    name: 'Frontend App',
-    description: 'Веб-приложение',
-    status: 'На паузе',
-    progress: 30,
-    deadline: '2024-07-20'
-  }
-])
+onMounted(() => {
+  void testStore.fetchProjects();
+});
 
-const stats = ref({
-  totalProjects: 3,
-  activeProjects: 1
-})
-
-const recentChanges = ref([
-  {
-    id: 1,
-    project: 'NexStep',
-    description: 'Обновлены тесты',
-    date: '2024-03-25'
-  },
-  {
-    id: 2,
-    project: 'Backend API',
-    description: 'Добавлены новые эндпоинты',
-    date: '2024-03-24'
-  },
-  {
-    id: 3,
-    project: 'Frontend App',
-    description: 'Исправлены ошибки',
-    date: '2024-03-23'
-  }
-])
-
-const showNewProjectDialog = ref(false)
-const newProject = ref({
-  name: '',
-  description: '',
-  status: 'Активный',
-  deadline: ''
-})
-
-const getStatusColor = (status: string) => {
-  switch (status) {
-    case 'Активный':
-      return 'positive'
-    case 'В разработке':
-      return 'primary'
-    case 'На паузе':
-      return 'warning'
-    case 'Завершен':
-      return 'grey'
-    default:
-      return 'grey'
-  }
-}
-
-const getProgressColor = (value: number) => {
-  if (value >= 80) return 'positive'
-  if (value >= 40) return 'warning'
-  return 'negative'
-}
-
-const createStatusChart = () => {
-  if (!statusChartRef.value) return
-
-  statusChart?.destroy()
-  const statusCounts = {
-    'Активный': projects.value.filter(p => p.status === 'Активный').length,
-    'В разработке': projects.value.filter(p => p.status === 'В разработке').length,
-    'На паузе': projects.value.filter(p => p.status === 'На паузе').length,
-    'Завершен': projects.value.filter(p => p.status === 'Завершен').length
-  }
-
-  statusChart = new Chart(statusChartRef.value, {
-    type: 'doughnut',
-    data: {
-      labels: Object.keys(statusCounts),
-      datasets: [{
-        data: Object.values(statusCounts),
-        backgroundColor: ['#4CAF50', '#2196F3', '#FFC107', '#9E9E9E']
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        legend: {
-          position: 'bottom' as const
-        }
-      }
-    }
-  })
-}
-
-interface Project {
-  id: number
-  name: string
-  description: string
-  status: string
-  deadline: string
-  progress: number
-}
+const openNewProjectDialog = () => {
+    isEditMode.value = false;
+    projectForm.value = { name: '', url: '' };
+    showProjectDialog.value = true;
+};
 
 const editProject = (project: Project) => {
-  console.log('Editing project:', project)
-  // TODO: Implement project editing
-}
+    isEditMode.value = true;
+    projectForm.value = { ...project }; // Copy project data to form
+    showProjectDialog.value = true;
+};
 
-const deleteProject = (project: Project) => {
-  console.log('Deleting project:', project)
-  // TODO: Implement project deletion
-}
+const confirmDeleteProject = (project: Project) => {
+    projectToDelete.value = project;
+    showDeleteConfirmDialog.value = true;
+};
 
-const onSubmit = () => {
-  // TODO: Implement project creation
-  showNewProjectDialog.value = false
-}
+const onSubmitProject = async () => {
+  submittingProject.value = true;
+  try {
+    if (isEditMode.value && projectForm.value.id) {
+      // Call update action (needs implementation in store)
+      // await testStore.updateProject(projectForm.value);
+      $q.notify({ type: 'positive', message: 'Проект обновлен (заглушка)' }); // Placeholder
+    } else {
+      // Call create action (needs implementation in store)
+      // await testStore.createProject({ name: projectForm.value.name || '', url: projectForm.value.url || null });
+      $q.notify({ type: 'positive', message: 'Проект создан (заглушка)' }); // Placeholder
+       await testStore.fetchProjects(); // Refresh list after creation
+    }
+    showProjectDialog.value = false;
+  } catch (err) {
+    console.error('Error submitting project:', err);
+    $q.notify({ type: 'negative', message: `Ошибка: ${err instanceof Error ? err.message : 'Unknown error'}` });
+  } finally {
+    submittingProject.value = false;
+  }
+};
 
-onMounted(createStatusChart)
-onUnmounted(() => {
-  statusChart?.destroy()
-})
+const deleteProjectConfirmed = async () => {
+    if (!projectToDelete.value) return;
+    deletingProject.value = true;
+    try {
+        // Call delete action (needs implementation in store)
+        // await testStore.deleteProject(projectToDelete.value.id);
+        $q.notify({ type: 'info', message: `Проект "${projectToDelete.value.name}" удален (заглушка)` }); // Placeholder
+        await testStore.fetchProjects(); // Refresh the list
+        showDeleteConfirmDialog.value = false;
+        projectToDelete.value = null;
+    } catch (err) {
+        console.error('Error deleting project:', err);
+        $q.notify({ type: 'negative', message: `Ошибка удаления: ${err instanceof Error ? err.message : 'Unknown error'}` });
+    } finally {
+        deletingProject.value = false;
+    }
+};
+
+const goToProjectTests = (projectId: number) => {
+  testStore.selectProject(projectId);
+  void router.push('/tests');
+};
+
 </script>
 
 <style scoped lang="scss">
-.modern-page {
-  background: $bg-gradient-light;
-  min-height: 100vh;
+.page-padding {
+  padding: 24px;
 }
 
-.modern-card {
-  border-radius: $border-radius;
-  box-shadow: $card-shadow;
-  transition: $transition-default;
-  overflow: hidden;
-  background-color: $background-white;
-  border: 1px solid $border-color;
-  backdrop-filter: blur(10px);
-  
-  &:hover {
-    box-shadow: $shadow-lg;
-    transform: translateY(-2px);
-  }
-}
-
-.modern-table {
-  .q-table {
-    &__card {
-      border-radius: $border-radius;
-    }
-    
-    thead tr th {
-      font-weight: 600;
-      color: $text-secondary;
-      background-color: $background-light;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      letter-spacing: 0.05em;
-      padding: 16px;
-    }
-    
-    tbody tr {
-      cursor: pointer;
-      transition: background-color 0.2s ease;
-      
-      &:hover {
-        background-color: $hover-color;
-      }
-      
-      &.selected {
-        background-color: $selected-color;
-      }
-      
-      td {
-        padding: 16px;
-      }
-    }
-  }
-}
-
-.status-badge {
-  font-size: 0.75rem;
+.page-title {
+  color: $text-primary; 
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 6px 12px;
-  border-radius: 6px;
-  display: inline-flex;
+}
+
+.project-card {
+  background-color: $surface-background; 
+  border: 1px solid $separator-color;
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  height: 100%; // Ensure cards have equal height if needed in a row
+  display: flex;
+  flex-direction: column;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    border-color: $separator-dark-color;
+  }
+
+  &__header {
+    padding-bottom: 12px;
+  }
+
+  &__title {
+    color: $text-primary;
+    font-weight: 500;
+  }
+
+  &__stats {
+    padding-top: 12px;
+    margin-top: auto; // Push stats and actions to the bottom
+  }
+}
+
+// Dialog styling
+.dialog-card {
+  background-color: $surface-background; 
+  color: $text-primary;
+  border: 1px solid $separator-dark-color;
+  box-shadow: $card-box-shadow;
+}
+
+.dialog-header {
+  display: flex;
   align-items: center;
-  gap: 4px;
-  box-shadow: $shadow-sm;
+  background-color: lighten($surface-background, 5%);
+  border-bottom: 1px solid $separator-color;
+  padding: 12px 16px;
 }
 
-.premium-btn {
-  background: $gradient-primary;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  
+.dialog-warning-header {
+   background-color: rgba($negative, 0.1);
+   color: $negative;
+   border-bottom: 1px solid $negative;
+}
+
+.dialog-menu {
+  .q-list {
+    background-color: lighten($surface-background, 5%) !important;
+    border: 1px solid $separator-dark-color;
+  }
+}
+
+// Adjust input field styles for dark theme within dialogs
+.q-dialog {
+  .q-field--outlined .q-field__control {
+    background-color: darken($surface-background, 5%);
+  }
+}
+
+.text-inherit {
+  color: inherit; 
+  text-decoration: none;
   &:hover {
-    transform: translateY(-1px);
-    box-shadow: $neon-shadow;
-  }
-  
-  &:active {
-    transform: translateY(0);
+    text-decoration: underline;
   }
 }
 
-.chart-container {
-  height: 200px;
-  position: relative;
-}
-</style> 
+</style>

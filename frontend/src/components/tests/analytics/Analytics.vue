@@ -72,13 +72,14 @@ import {
   LinearScale,
   PointElement,
   LineElement,
+  LineController,
   Title,
   Tooltip,
   Legend,
   ArcElement,
   DoughnutController
 } from 'chart.js'
-import type { TestResult } from 'src/types/test.type'
+import type { Test /*, TestResult, TestResultMessage, TestResultMetrics */ } from 'src/types/test.type'
 
 defineOptions({
   name: 'TestAnalytics'
@@ -89,6 +90,7 @@ Chart.register(
   LinearScale,
   PointElement,
   LineElement,
+  LineController,
   Title,
   Tooltip,
   Legend,
@@ -97,7 +99,7 @@ Chart.register(
 )
 
 interface Props {
-  tests: TestResult[]
+  tests: Test[]
 }
 
 const props = defineProps<Props>()
@@ -112,10 +114,11 @@ let errorTypesChart: Chart | null = null
 
 // Table columns for top issues
 const issueColumns = [
-  { name: 'severity', label: 'Уровень', field: 'severity', align: 'left' as const },
+  { name: 'type', label: 'Уровень', field: 'type', align: 'left' as const },
   { name: 'message', label: 'Сообщение', field: 'message', align: 'left' as const },
   { name: 'count', label: 'Количество', field: 'count', align: 'right' as const },
-  { name: 'files', label: 'Файлы', field: 'files', align: 'left' as const }
+  { name: 'files', label: 'Файлы', field: 'files', align: 'left' as const },
+  { name: 'source', label: 'Источник', field: 'source', align: 'left' as const },
 ]
 
 // Process data for charts
@@ -125,10 +128,10 @@ const timeData = computed(() => {
     if (!acc[date]) {
       acc[date] = { errors: 0, warnings: 0 }
     }
-    if (test.result?.totals) {
-      acc[date].errors += test.result.totals.errors ?? 0
-      acc[date].warnings += test.result.totals.warnings ?? 0
-    }
+    test.results?.forEach((result) => {
+      acc[date]!.errors += result.parsedMetrics?.errors ?? 0
+      acc[date]!.warnings += result.parsedMetrics?.warnings ?? 0
+    })
     return acc
   }, {} as Record<string, { errors: number, warnings: number }>)
 
@@ -153,14 +156,14 @@ const timeData = computed(() => {
 
 const projectData = computed(() => {
   const data = props.tests.reduce((acc, test) => {
-    const project = test.project_name || 'Без проекта'
+    const project = test.project?.name || 'Без проекта'
     if (!acc[project]) {
       acc[project] = { errors: 0, warnings: 0 }
     }
-    if (test.result?.totals) {
-      acc[project].errors += test.result.totals.errors ?? 0
-      acc[project].warnings += test.result.totals.warnings ?? 0
-    }
+    test.results?.forEach((result) => {
+      acc[project]!.errors += result.parsedMetrics?.errors ?? 0
+      acc[project]!.warnings += result.parsedMetrics?.warnings ?? 0
+    })
     return acc
   }, {} as Record<string, { errors: number, warnings: number }>)
 
@@ -175,16 +178,12 @@ const projectData = computed(() => {
 
 const errorTypesData = computed(() => {
   const data = props.tests.reduce((acc, test) => {
-    if (test.result?.files) {
-      Object.values(test.result.files).forEach(file => {
-        if (file.messages) {
-          file.messages.forEach(msg => {
-            const type = msg.source || 'Неизвестный тип'
-            acc[type] = (acc[type] || 0) + 1
-          })
-        }
+    test.results?.forEach((result) => {
+      result.parsedOutput?.forEach((msg) => {
+        const type = msg.source || 'Неизвестный источник'
+        acc[type] = (acc[type] || 0) + 1
       })
-    }
+    })
     return acc
   }, {} as Record<string, number>)
 
@@ -199,35 +198,32 @@ const errorTypesData = computed(() => {
 
 const topIssues = computed(() => {
   const issues = props.tests.reduce((acc, test) => {
-    if (test.result?.files) {
-      Object.values(test.result.files).forEach(file => {
-        if (file.messages) {
-          file.messages.forEach(msg => {
-            const key = `${msg.severity}-${msg.message}`
-            if (!acc[key]) {
-              acc[key] = {
-                id: key,
-                severity: msg.severity,
-                message: msg.message,
-                count: 0,
-                files: new Set<string>()
-              }
-            }
-            acc[key].count++
-            if (msg.source) {
-              acc[key].files.add(msg.source)
-            }
-          })
+    test.results?.forEach((result) => {
+      result.parsedOutput?.forEach((msg) => {
+        const key = `${msg.type}-${msg.message}`
+        if (!acc[key]) {
+          acc[key] = {
+            id: key,
+            type: msg.type,
+            message: msg.message,
+            source: msg.source || 'N/A',
+            count: 0,
+            files: new Set<string>()
+          }
+        }
+        acc[key].count++
+        if (result.parsedMetrics?.file_path) {
+          acc[key].files.add(result.parsedMetrics.file_path)
         }
       })
-    }
+    })
     return acc
-  }, {} as Record<string, { id: string, severity: string, message: string, count: number, files: Set<string> }>)
+  }, {} as Record<string, { id: string, type: string, message: string, source: string, count: number, files: Set<string> }>)
 
   return Object.values(issues)
     .map(issue => ({
       ...issue,
-      files: Array.from(issue.files).join(', ')
+      files: Array.from(issue.files).slice(0, 3).join(', ') + (issue.files.size > 3 ? '...' : ''),
     }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 10)

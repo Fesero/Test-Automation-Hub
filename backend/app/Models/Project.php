@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Project extends Model
 {
@@ -27,5 +28,14 @@ class Project extends Model
     public function tests(): HasMany
     {
         return $this->hasMany(Test::class);
+    }
+
+    /**
+     * Получить самый последний тест для проекта.
+     */
+    public function latestTest(): HasOne
+    {
+        return $this->hasOne(Test::class)->latestOfMany();
+        // Или ->latestOfMany('created_at') если нужно явно указать поле сортировки
     }
 }

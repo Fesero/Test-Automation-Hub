@@ -15,7 +15,21 @@ class ProjectController extends Controller
      */
     public function index()
     {
-        return Project::all();
+        // Загружаем проекты с количеством тестов и последним тестом
+        $projects = Project::query()
+            ->withCount('tests') // Добавляет поле tests_count
+            ->with('latestTest') // Загружает связь latestTest
+            ->get();
+
+        // Можно добавить маппинг, чтобы сразу включить last_test_status
+        // или оставить это на фронтенде, если он уже умеет работать с latestTest
+        $projects = $projects->map(function ($project) {
+            $project->last_test_status = $project->latestTest?->status; // Добавляем поле
+            // unset($project->latestTest); // Опционально: удалить объект latestTest, если он не нужен
+            return $project;
+        });
+
+        return response()->json($projects);
     }
 
     /**

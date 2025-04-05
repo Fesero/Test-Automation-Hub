@@ -25,7 +25,11 @@ Route::prefix('tests')->group(function () {
     // Роут для сохранения результатов теста
     Route::post('/{test}/results', [TestResultController::class, 'store'])->name('tests.results.store');
 
-    // Старые роуты для сохранения результатов (удалить или закомментировать)
-    // Route::post('/sniffer', [TestController::class, 'storeSnifferResults']);
-    // Route::post('/phpstan', [TestController::class, 'storePHPStanResults']);
+    // Роуты для приема результатов от TAHAnalyzer плагина (возвращаем на TestResultController)
+    Route::post('/sniffer', [TestResultController::class, 'storeFromPlugin'])
+        // ->middleware('auth:sanctum') // Auth still removed for now
+        ->name('results.store.sniffer');
+    Route::post('/phpstan', [TestResultController::class, 'storeFromPlugin'])
+        // ->middleware('auth:sanctum') // Auth still removed for now
+        ->name('results.store.phpstan');
 });

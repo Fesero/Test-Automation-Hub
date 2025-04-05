@@ -1,7 +1,7 @@
 <template>
-  <q-layout view="hHh lpR fFf">
-    <q-header elevated class="bg-gradient-primary text-white">
-      <q-toolbar>
+  <q-layout view="lHh Lpr fFf">
+    <q-header class="bg-dark text-white" height-hint="64">
+      <q-toolbar class="header-toolbar">
         <q-btn
           flat
           dense
@@ -9,14 +9,20 @@
           icon="menu"
           aria-label="Menu"
           @click="toggleLeftDrawer"
+          class="q-mr-sm"
         />
 
-        <q-toolbar-title class="text-h6">
+        <q-toolbar-title class="toolbar-title">
+          <q-avatar class="q-mr-sm">
+            <img src="icons/favicon-128x128.png">
+          </q-avatar>
           Test Automation Hub
         </q-toolbar-title>
 
-        <q-btn-dropdown flat icon="person">
-          <q-list>
+        <q-space />
+
+        <q-btn-dropdown flat icon="person" dropdown-icon="expand_more" class="profile-dropdown">
+          <q-list class="bg-dark-alt text-white">
             <q-item clickable v-close-popup @click="handleProfile">
               <q-item-section>
                 <q-item-label>Профиль</q-item-label>
@@ -37,34 +43,37 @@
     <q-drawer
       v-model="leftDrawerOpen"
       show-if-above
-      bordered
-      class="bg-white"
-      :width="250"
+      :width="260"
+      :breakpoint="700"
+      class="sidebar-drawer bg-dark-alt"
     >
-      <q-list padding>
-        <q-item-label header class="text-weight-bold text-primary">Навигация</q-item-label>
+      <q-scroll-area class="fit">
+        <q-list padding class="nav-list">
+          <q-item-label header class="nav-header">Navigation</q-item-label>
 
-        <q-item
-          v-for="link in links"
-          :key="link.title"
-          :to="link.link"
-          clickable
-          v-ripple
-          :active="$route.path === link.link"
-          class="nav-item"
-        >
-          <q-item-section avatar>
-            <q-icon :name="link.icon" :color="$route.path === link.link ? 'white' : 'primary'" />
-          </q-item-section>
+          <q-item
+            v-for="link in links"
+            :key="link.title"
+            :to="link.link"
+            clickable
+            v-ripple
+            :active="$route.path.startsWith(link.link)" 
+            active-class="nav-item--active"
+            class="nav-item"
+          >
+            <q-item-section avatar class="nav-item-icon">
+              <q-icon :name="link.icon" />
+            </q-item-section>
 
-          <q-item-section>
-            {{ link.title }}
-          </q-item-section>
-        </q-item>
-      </q-list>
+            <q-item-section class="nav-item-label">
+              {{ link.title }}
+            </q-item-section>
+          </q-item>
+        </q-list>
+      </q-scroll-area>
     </q-drawer>
 
-    <q-page-container>
+    <q-page-container class="page-container">
       <router-view />
     </q-page-container>
   </q-layout>
@@ -134,45 +143,91 @@ const handleLogout = async () => {
 }
 </script>
 
-<style lang="scss">
-.q-drawer {
-  .nav-item {
-    border-radius: 0 24px 24px 0;
-    margin-right: 12px;
-    margin-bottom: 4px;
-    transition: all 0.3s ease;
-
-    &:hover {
-      background: rgba(var(--q-primary), 0.05);
-    }
-
-    &.q-router-link-active {
-      background: var(--q-primary);
-      color: white;
-      box-shadow: $neon-shadow;
-    }
-  }
-}
-
+<style lang="scss" scoped>
 .q-header {
-  background: $gradient-primary;
-  box-shadow: $shadow-lg;
+  border-bottom: 1px solid $separator-color;
 }
 
-.q-toolbar {
+.header-toolbar {
+  padding: 0 24px;
   min-height: 64px;
 }
 
-.q-toolbar-title {
+.toolbar-title {
   font-weight: 600;
-  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  .q-avatar {
+    width: 32px;
+    height: 32px;
+  }
 }
 
-.q-btn-dropdown {
+.profile-dropdown {
   .q-icon {
     font-size: 24px;
   }
 }
-</style>
 
-    font-size: 24px;
+.sidebar-drawer {
+  background-color: $dark;
+  color: $text-primary;
+  border-right: 1px solid $separator-color;
+}
+
+.nav-list {
+  padding-top: 16px;
+}
+
+.nav-header {
+  color: $text-secondary;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  font-weight: 600;
+  margin-left: 16px;
+  margin-bottom: 8px;
+}
+
+.nav-item {
+  color: $text-secondary;
+  margin: 4px 16px;
+  padding: 10px 16px;
+  border-radius: 6px;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+
+  .nav-item-icon {
+    min-width: 36px;
+    font-size: 20px;
+  }
+
+  &:hover {
+    background-color: rgba($primary, 0.1);
+    color: $text-primary;
+  }
+
+  &.nav-item--active {
+    background-color: $primary;
+    color: white;
+    font-weight: 500;
+
+    .nav-item-icon {
+      color: white;
+    }
+  }
+}
+
+.page-container {
+  background-color: $body-background;
+}
+
+.q-menu {
+  .q-list {
+    background-color: $surface-background !important;
+    color: $text-primary !important;
+    border: 1px solid $separator-dark-color;
+  }
+  .q-item:hover {
+      background-color: $list-item-hover-background !important;
+  }
+}
+</style>

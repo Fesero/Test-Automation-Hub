@@ -1,56 +1,46 @@
 <template>
   <div class="quick-actions q-mb-lg">
-    <div class="row items-center justify-between">
-      <div class="col-12 col-sm-auto">
-        <div class="row q-col-gutter-sm">
+    <div class="row items-center justify-between q-gutter-md">
+      <!-- Left side actions -->
+      <div class="col-auto">
+        <div class="row q-gutter-sm">
           <div class="col-auto">
-            <q-btn color="primary" icon="add" label="Новый тест" @click="$emit('new-test')" />
+            <q-btn 
+                color="primary" 
+                icon="add" 
+                label="Новый тест" 
+                @click="$emit('new-test')" 
+                unelevated 
+                :disable="disabled"
+            />
           </div>
-          <div class="col-auto">
-            <q-btn-dropdown color="secondary" icon="filter_list" label="Быстрые фильтры">
-              <q-list>
-                <q-item clickable v-close-popup @click="$emit('update:filterType', 'sniffer')">
-                  <q-item-section avatar>
-                    <q-icon name="code" color="primary" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>Sniffer тесты</q-item-label>
-                  </q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="$emit('update:filterType', 'static_analysis')">
-                  <q-item-section avatar>
-                    <q-icon name="analytics" color="purple" />
-                  </q-item-section>
-                  <q-item-section>
-                    <q-item-label>Статический анализ</q-item-label>
-                  </q-item-section>
-                </q-item>
-              </q-list>
-            </q-btn-dropdown>
-          </div>
-          <div class="col-auto">
-            <q-btn-dropdown color="accent" icon="more_vert" flat>
-              <q-list>
-                <q-item clickable v-close-popup @click="$emit('export')">
-                  <q-item-section avatar>
-                    <q-icon name="file_download" />
-                  </q-item-section>
-                  <q-item-section>Экспорт CSV</q-item-section>
-                </q-item>
-                <q-item clickable v-close-popup @click="$emit('refresh')">
-                  <q-item-section avatar>
-                    <q-icon name="refresh" />
-                  </q-item-section>
-                  <q-item-section>Обновить все</q-item-section>
-                </q-item>
-              </q-list>
-            </q-btn-dropdown>
-          </div>
+           <div class="col-auto">
+             <q-btn 
+                 outline 
+                 color="secondary" 
+                 icon="refresh" 
+                 label="Обновить" 
+                 @click="$emit('refresh')" 
+                 :disable="disabled"
+             />
+           </div>
+           <div class="col-auto">
+             <q-btn 
+                 flat 
+                 color="secondary" 
+                 icon="file_download" 
+                 label="Экспорт"
+                 @click="$emit('export')" 
+                 :disable="disabled"
+             />
+           </div>
+           <!-- Removed filter dropdowns as filters are separate inputs now -->
         </div>
       </div>
 
-      <div class="col-12 col-sm-auto q-mt-sm q-mt-sm-none">
-        <div class="row q-col-gutter-sm">
+      <!-- Right side filters -->
+      <div class="col-auto">
+        <div class="row items-center q-gutter-sm">
           <div class="col-auto">
             <q-select
               :model-value="filterType"
@@ -62,26 +52,48 @@
               class="filter-select"
               :class="{ 'active': filterType !== 'Все' }"
               emit-value
+              dark
+              popup-content-class="bg-surface-alt"
+              options-dark
+              :disable="disabled"
             >
               <template v-slot:prepend>
-                <q-icon name="filter_list" />
+                <q-icon name="filter_list" color="secondary" />
               </template>
             </q-select>
           </div>
           <div class="col-auto">
-            <q-input
-              :model-value="dateRange"
-              @update:model-value="(val: string | number | null) => $emit('update:dateRange', val?.toString() || '')"
-              label="Период"
-              outlined
-              dense
-              class="filter-input"
-              type="date"
-            >
-              <template v-slot:prepend>
-                <q-icon name="event" />
-              </template>
-            </q-input>
+            <q-btn icon="event" round flat color="secondary" :disable="disabled">
+              <q-popup-proxy 
+                transition-show="scale" 
+                transition-hide="scale" 
+                class="bg-surface-alt"
+                cover
+              >
+                <q-date 
+                  :model-value="dateRange" 
+                  @update:model-value="$emit('update:dateRange', $event)"
+                  range 
+                  minimal 
+                  dark
+                  color="primary"
+                >
+                  <div class="row items-center justify-end q-gutter-sm q-pa-sm">
+                    <q-btn label="Отмена" color="primary" flat v-close-popup />
+                    <q-btn label="OK" color="primary" flat v-close-popup /> <!-- Apply happens via v-model -->
+                    <q-btn label="Сбросить" color="negative" flat @click="$emit('update:dateRange', null)" v-close-popup />
+                  </div>
+                </q-date>
+              </q-popup-proxy>
+               <q-tooltip>Выбрать период</q-tooltip>
+               <q-badge v-if="dateRange" color="primary" floating transparent rounded>!</q-badge>
+            </q-btn>
+            <span v-if="dateRange" class="text-caption text-secondary q-ml-xs">
+                {{ formattedDateRange }}
+            </span>
+             <q-btn v-if="dateRange" icon="close" round flat dense size="sm" color="negative" @click="$emit('update:dateRange', null)" class="q-ml-xs">
+                <q-tooltip>Сбросить период</q-tooltip>
+             </q-btn>
           </div>
         </div>
       </div>
@@ -90,33 +102,61 @@
 </template>
 
 <script setup lang="ts">
-defineProps<{
-  filterType: string
-  dateRange: string
-}>()
+import { computed } from 'vue';
+
+// Define types for props and emits
+type DateRange = { from: string; to: string } | null;
+
+const props = defineProps<{
+  filterType: string;
+  dateRange: DateRange;
+  disabled?: boolean; // Add disabled prop
+}>();
 
 defineEmits<{
-  'update:filterType': [value: string]
-  'update:dateRange': [value: string]
-  'new-test': []
-  'export': []
-  'refresh': []
-}>()
+  'update:filterType': [value: string];
+  'update:dateRange': [value: DateRange]; // Update emit type
+  'new-test': [];
+  'export': [];
+  'refresh': [];
+}>();
+
+const formattedDateRange = computed(() => {
+  if (!props.dateRange) return '';
+  const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'short', day: 'numeric' };
+  const from = new Date(props.dateRange.from).toLocaleDateString('ru-RU', options);
+  const to = new Date(props.dateRange.to).toLocaleDateString('ru-RU', options);
+  return `${from} - ${to}`;
+});
+
 </script>
 
 <style scoped lang="scss">
 .quick-actions {
-  background: white;
-  border-radius: 12px;
+  background: $surface-background; // Use dark surface
+  border-radius: $card-border-radius; // Use variable
   padding: 1rem;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid $separator-color; // Add border
+  box-shadow: $card-box-shadow; // Add shadow
+}
 
-  .q-btn {
-    min-width: 120px;
+// Style select and input for dark theme
+.filter-select {
+  min-width: 180px;
+  :deep(.q-field__native), 
+  :deep(.q-field__control), 
+  :deep(.q-field__marginal) {
+    color: $text-primary;
+  }
+   :deep(.q-field__label) {
+        color: $text-secondary !important;
+    }
+  :deep(.q-field__control) {
+      background-color: lighten($surface-background, 5%) !important;
+      &:before, &:after {
+        border-color: $separator-color !important;
+      }
   }
 }
 
-.filter-select, .filter-input {
-  min-width: 200px;
-}
 </style> 

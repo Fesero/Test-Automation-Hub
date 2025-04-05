@@ -2,9 +2,10 @@
     "paths": ["app", "database", "config"],
     "exclude": ["vendor", "node_modules"],
     "standart": "PSR12",
-    "severity": 5,
+    "severity": 9,
     "api": {
-        "base_url": "http://localhost:8000/api",
-        "token": "secret"
-    }
+        "base_url": "http://127.0.0.1:8000/api",
+        "token": "1|n6QSmNoF6Wl6PTceG2ViMvbfKrt5OFio4n0wwgLCb2f62a73"
+    },
+    "projectName": "NexStep"
 }

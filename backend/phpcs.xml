@@ -18,11 +18,6 @@
         <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
     </rule>
 
-    <!-- Важные правила для безопасности -->
-    <rule ref="Security">
-        <exclude name="Security.CrossSiteScripting"/>
-    </rule>
-
     <!-- Правила для качества кода -->
     <rule ref="Generic.CodeAnalysis">
         <exclude name="Generic.CodeAnalysis.EmptyStatement"/>

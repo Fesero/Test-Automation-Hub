@@ -21,7 +21,7 @@
         </div>
       </div>
       <q-card-section>
-        <TestsOverviewChart :tests="tests" />
+        <TestsOverviewChart :tests="tests" :key="chartKey" />
       </q-card-section>
     </q-card>
 
@@ -48,14 +48,13 @@
       
       <q-card-section>
         <q-table
-          :rows="filteredTests"
+          :rows="tests"
           :columns="columns"
           row-key="id"
           :loading="loading"
           @row-click="onRowClick"
           selection="single"
           v-model:selected="selected"
-          @update:selected="onSelectedUpdate"
           :pagination="{ rowsPerPage: 10 }"
           class="tests-table"
           :filter="searchTerm"
@@ -80,7 +79,7 @@
           </template>
 
           <template v-slot:body="props">
-            <q-tr :props="props">
+            <q-tr :props="props" @click="onRowClick($event, props.row)">
               <q-td auto-width>
                 <q-checkbox v-model="props.selected" />
               </q-td>
@@ -97,34 +96,30 @@
                     {{ props.row[col.field] }}
                   </div>
                 </template>
-                <template v-else-if="col.name === 'project_name'">
+                <template v-else-if="col.name === 'projectName'">
                   <q-chip size="sm" color="grey-3" text-color="grey-8" outline>
-                    {{ props.row[col.field] || 'N/A' }}
+                    {{ props.row.project?.name || 'N/A' }}
                   </q-chip>
                 </template>
                 <template v-else-if="col.name === 'errors'">
                   <div class="text-center">
-                    <q-chip 
-                      :color="props.row[col.field] > 0 ? 'negative' : 'grey-4'" 
-                      :text-color="props.row[col.field] > 0 ? 'white' : 'grey-8'"
-                      dense
-                      size="sm"
-                      outline
+                    <q-chip
+                      :color="calculateErrors(props.row) > 0 ? 'negative' : 'grey-4'"
+                      :text-color="calculateErrors(props.row) > 0 ? 'white' : 'grey-8'"
+                      dense size="sm" outline
                     >
-                      {{ props.row[col.field] }}
+                      {{ calculateErrors(props.row) }}
                     </q-chip>
                   </div>
                 </template>
                 <template v-else-if="col.name === 'warnings'">
                   <div class="text-center">
-                    <q-chip 
-                      :color="props.row[col.field] > 0 ? 'warning' : 'grey-4'" 
-                      :text-color="props.row[col.field] > 0 ? 'white' : 'grey-8'"
-                      dense
-                      size="sm"
-                      outline
+                    <q-chip
+                      :color="calculateWarnings(props.row) > 0 ? 'warning' : 'grey-4'"
+                      :text-color="calculateWarnings(props.row) > 0 ? 'white' : 'grey-8'"
+                      dense size="sm" outline
                     >
-                      {{ props.row[col.field] }}
+                      {{ calculateWarnings(props.row) }}
                     </q-chip>
                   </div>
                 </template>
@@ -136,12 +131,7 @@
                   </div>
                 </template>
                 <template v-else-if="col.name === 'created_at'">
-                  {{ new Date(props.row[col.field]).toLocaleString('en-US', { 
-                    month: 'short', 
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) }}
+                  {{ formatDate(props.row[col.field]) }}
                 </template>
                 <template v-else>
                   {{ props.row[col.field] }}
@@ -156,8 +146,8 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { TestResult } from 'src/types/test.type'
+import { ref, watch } from 'vue'
+import type { Test } from 'src/types/test.type'
 import type { QTableColumn } from 'quasar'
 import TestsOverviewChart from './TestsOverviewChart.vue'
 
@@ -170,66 +160,51 @@ interface TableColumn extends QTableColumn {
 }
 
 const props = defineProps<{
-  tests: TestResult[]
+  tests: Test[]
   loading: boolean
 }>()
 
 const emit = defineEmits<{
-  'row-click': [event: Event, row: TestResult]
-  'update:selected': [value: TestResult[]]
+  'row-click': [event: Event, row: Test]
 }>()
 
-const selected = ref<TestResult[]>([])
+const selected = ref<Test[]>([])
 const searchTerm = ref('')
 const chartPeriod = ref('week')
-
-const formattedTests = computed(() => 
-  props.tests.map(test => {
-    let errors = 0
-    let warnings = 0
-
-    if (test.result?.files) {
-      Object.values(test.result.files).forEach(file => {
-        errors += (file as { errors?: number }).errors || 0
-        warnings += (file as { warnings?: number }).warnings || 0
-      })
-    }
-
-    return {
-      ...test,
-      errors,
-      warnings
-    }
-  })
-)
-
-const filteredTests = computed(() => formattedTests.value)
+const chartKey = ref(0)
 
 const filterTests = (
-  rows: readonly TestResult[],
+  rows: readonly Test[],
   terms: string
-) => {
+): readonly Test[] => {
   if (!terms) return rows
   
   const lowTerms = terms.toLowerCase()
   
   return rows.filter(row => 
     (row.name && row.name.toLowerCase().includes(lowTerms)) ||
-    (row.project_name && row.project_name.toLowerCase().includes(lowTerms)) ||
+    (row.project?.name && row.project.name.toLowerCase().includes(lowTerms)) ||
     (row.type && row.type.toLowerCase().includes(lowTerms)) ||
     (row.status && row.status.toLowerCase().includes(lowTerms))
   )
 }
 
+const calculateErrors = (test: Test): number => {
+  return test.results?.reduce((sum, r) => sum + (r.parsedMetrics?.errors ?? 0), 0) ?? 0
+}
+
+const calculateWarnings = (test: Test): number => {
+  return test.results?.reduce((sum, r) => sum + (r.parsedMetrics?.warnings ?? 0), 0) ?? 0
+}
+
 const columns: TableColumn[] = [
-  { name: 'selection', label: '', field: 'selection', align: 'center', sortable: false },
   { name: 'id', label: 'ID', field: 'id', align: 'left', sortable: true },
   { name: 'name', label: 'Название', field: 'name', align: 'left', sortable: true },
-  { name: 'project_name', label: 'Проект', field: 'project_name', align: 'left', sortable: true },
+  { name: 'projectName', label: 'Проект', field: 'project', align: 'left', sortable: true },
   { name: 'type', label: 'Тип', field: 'type', align: 'left', sortable: true },
   { name: 'status', label: 'Статус', field: 'status', align: 'left', sortable: true },
-  { name: 'errors', label: 'Ошибки', field: 'errors', align: 'center', sortable: true },
-  { name: 'warnings', label: 'Предупреждения', field: 'warnings', align: 'center', sortable: true },
+  { name: 'errors', label: 'Ошибки', field: 'id', align: 'center', sortable: false },
+  { name: 'warnings', label: 'Предупреждения', field: 'id', align: 'center', sortable: false },
   { name: 'execution_time', label: 'Время', field: 'execution_time', align: 'right', sortable: true },
   { name: 'created_at', label: 'Дата', field: 'created_at', align: 'left', sortable: true }
 ]
@@ -244,17 +219,24 @@ const typeColor = (type: string) => {
   }
 }
 
-const onRowClick = (evt: Event, row: TestResult) => {
+const formatDate = (dateString: string): string => {
+  if (!dateString) return '-'
+  return new Date(dateString).toLocaleString('ru-RU', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const onRowClick = (evt: Event, row: Test) => {
   selected.value = [row]
   emit('row-click', evt, row)
 }
 
-const onSelectedUpdate = (newSelected: readonly TestResult[]) => {
-  selected.value = [...newSelected]
-  if (newSelected.length > 0 && newSelected[0]) {
-    emit('row-click', new Event('click'), newSelected[0])
-  }
-}
+watch(() => props.tests, () => {
+    chartKey.value++;
+}, { deep: true });
 </script>
 
 <style scoped lang="scss">

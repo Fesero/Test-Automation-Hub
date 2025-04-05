@@ -5,7 +5,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import {
   Chart,
   CategoryScale,
@@ -16,7 +16,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js'
-import type { TestResult } from 'src/types/test.type'
+import type { Test } from 'src/types/test.type'
 
 Chart.register(
   CategoryScale,
@@ -29,11 +29,44 @@ Chart.register(
 )
 
 const props = defineProps<{
-  tests: TestResult[]
+  tests: Test[]
 }>()
 
 const chartRef = ref<HTMLCanvasElement | null>(null)
 let chart: Chart | null = null
+
+const chartData = computed(() => {
+  const labels = props.tests.map(t => t.name)
+  const errorsData: number[] = []
+  const warningsData: number[] = []
+
+  props.tests.forEach(test => {
+    let errors = 0
+    let warnings = 0
+    test.results?.forEach(result => {
+      errors += result.parsedMetrics?.errors ?? 0
+      warnings += result.parsedMetrics?.warnings ?? 0
+    })
+    errorsData.push(errors)
+    warningsData.push(warnings)
+  })
+
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Ошибки',
+        data: errorsData,
+        backgroundColor: '#ff6b6b'
+      },
+      {
+        label: 'Предупреждения',
+        data: warningsData,
+        backgroundColor: '#ffd93d'
+      }
+    ]
+  }
+})
 
 const createChart = () => {
   if (!chartRef.value) return
@@ -42,32 +75,21 @@ const createChart = () => {
   
   chart = new Chart(chartRef.value, {
     type: 'bar',
-    data: {
-      labels: props.tests.map(t => t.name),
-      datasets: [
-        {
-          label: 'Ошибки',
-          data: props.tests.map(t => t.result?.totals?.errors || 0),
-          backgroundColor: '#ff6b6b'
-        },
-        {
-          label: 'Предупреждения',
-          data: props.tests.map(t => t.result?.totals?.warnings || 0),
-          backgroundColor: '#4ecdc4'
-        }
-      ]
-    },
+    data: chartData.value,
     options: {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
         legend: {
-          position: 'bottom'
+          position: 'bottom' as const
         }
       },
       scales: {
         y: {
           beginAtZero: true
+        },
+        x: {
+          // Optional: Add category scale if needed explicitly
         }
       }
     }
@@ -75,7 +97,7 @@ const createChart = () => {
 }
 
 onMounted(createChart)
-watch(() => props.tests, createChart, { deep: true })
+watch(chartData, createChart, { deep: true })
 </script>
 
 <style scoped>

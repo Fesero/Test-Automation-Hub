@@ -3,7 +3,6 @@
 
 import { defineConfig } from '#q-app/wrappers';
 import path from 'path';
-import { createPinia } from 'pinia';
 
 export default defineConfig((/* ctx */) => {
   return {
@@ -70,20 +69,13 @@ export default defineConfig((/* ctx */) => {
       },
 
       extendViteConf (viteConf) {
-        viteConf = {
-          server: {
-            hmr: {
-              port: 9000,
-              clientPort: 9000,
-            }
-          },
-          resolve: {
-            alias: {
-              ...viteConf.resolve?.alias,
-              types: path.resolve(__dirname, "./src/types")
-            }
-          }
+        if (!viteConf.resolve) {
+          viteConf.resolve = {};
         }
+        viteConf.resolve.alias = {
+          ...viteConf.resolve.alias,
+          types: path.resolve(__dirname, "./src/types")
+        };
       },
       // viteVuePluginOptions: {},
 
@@ -114,7 +106,15 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     framework: {
-      config: {},
+      config: {
+        dark: 'auto', // Or true to force dark mode always
+        // brand: {
+        //   primary: '#1e3a8a', // ...other colors
+        // }
+        // notify: { /* ... */ },
+        // loading: { /* ... */ },
+        // etc.
+      },
 
       // iconSet: 'material-icons', // Quasar icon set
       // lang: 'en-US', // Quasar language pack

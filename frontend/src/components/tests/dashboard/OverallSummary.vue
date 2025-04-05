@@ -217,7 +217,7 @@ import {
   DoughnutController,
   ArcElement
 } from 'chart.js'
-import type { TestResult } from 'src/types/test.type'
+import type { Test, TestResultMessage } from 'src/types/test.type'
 
 Chart.register(
   CategoryScale,
@@ -231,7 +231,7 @@ Chart.register(
 )
 
 interface Props {
-  tests: TestResult[]
+  tests: Test[]
 }
 
 const props = defineProps<Props>()
@@ -243,169 +243,169 @@ const selectedFile = ref<string | null>(null)
 
 // Message columns for the table
 const messageColumns = [
-  { name: 'severity', label: 'Уровень', field: 'severity', align: 'left' as const },
+  { name: 'type', label: 'Уровень', field: 'type', align: 'left' as const },
   { name: 'location', label: 'Расположение', field: 'line', align: 'left' as const },
-  { name: 'message', label: 'Сообщение', field: 'message', align: 'left' as const }
+  { name: 'message', label: 'Сообщение', field: 'message', align: 'left' as const },
+  { name: 'source', label: 'Источник', field: 'source', align: 'left' as const },
 ]
 
-const selectedFileMessages = computed(() => {
-  if (!selectedFile.value) return []
-  
-  // Find messages in all tests for the selected file
-  for (const test of props.tests) {
-    if (test.result?.files?.[selectedFile.value]) {
-      const messages = test.result.files[selectedFile.value]!.messages || []
-      return messages.map((msg, index) => ({...msg, index}))
-    }
-  }
-  
-  return []
-})
+// Recalculate stats based on Test[] and results
+const aggregatedStats = computed(() => {
+  let totalErrors = 0
+  let totalWarnings = 0
+  let totalFiles = 0
+  const fileStats: Record<string, { errors: number; warnings: number }> = {}
 
-const selectedFileStats = computed(() => {
-  if (!selectedFile.value) return null
-  return fileStats.value[selectedFile.value] || null
-})
+  props.tests.forEach((test) => {
+    test.results?.forEach((result) => {
+      totalFiles++
+      const errors = result.parsedMetrics?.errors ?? 0
+      const warnings = result.parsedMetrics?.warnings ?? 0
+      totalErrors += errors
+      totalWarnings += warnings
 
-const selectFile = (filePath: string) => {
-  selectedFile.value = filePath
-}
-
-// Aggregated statistics for files
-const fileStats = computed(() => {
-  const stats: Record<string, { errors: number, warnings: number }> = {}
-  
-  props.tests.forEach(test => {
-    if (test.result?.files) {
-      Object.entries(test.result.files).forEach(([path, file]) => {
-        // Initialize file stats
-        if (!stats[path]) {
-          stats[path] = { errors: 0, warnings: 0 }
+      const filePath = result.parsedMetrics?.file_path
+      if (filePath) {
+        if (!fileStats[filePath]) {
+          fileStats[filePath] = { errors: 0, warnings: 0 }
         }
-        
-        // Count errors and warnings
-        if (file.errors) {
-          stats[path].errors += file.errors
-        }
-        if (file.warnings) {
-          stats[path].warnings += file.warnings
-        }
-      })
-    }
+        fileStats[filePath].errors += errors
+        fileStats[filePath].warnings += warnings
+      }
+    })
   })
-  
-  return stats
+
+  const filesWithErrors = Object.values(fileStats).filter(f => f.errors > 0).length
+  const filesWithWarnings = Object.values(fileStats).filter(f => f.warnings > 0 && f.errors === 0).length
+  const cleanFiles = totalFiles - filesWithErrors - filesWithWarnings
+  const cleanFilesPercent = totalFiles === 0 ? 100 : Math.round((cleanFiles / totalFiles) * 100)
+
+  return {
+    totalErrors,
+    totalWarnings,
+    totalFiles,
+    fileStats,
+    filesWithErrors,
+    filesWithWarnings,
+    cleanFiles,
+    cleanFilesPercent
+  }
 })
 
-// Top files with errors
+// Use aggregated stats in computed properties
+const totalErrors = computed(() => aggregatedStats.value.totalErrors)
+const totalWarnings = computed(() => aggregatedStats.value.totalWarnings)
+const totalFiles = computed(() => aggregatedStats.value.totalFiles)
+const cleanFilesPercent = computed(() => aggregatedStats.value.cleanFilesPercent)
+
+// Simulate previous stats for trend icons (replace with actual logic if needed)
+const previousTotalErrors = ref(0)
+const previousTotalWarnings = ref(0)
+
+// Top error files based on aggregated stats
 const topErrorFiles = computed(() => {
-  return Object.entries(fileStats.value)
-    .map(([path, stats]) => ({
-      path,
-      errors: stats.errors,
-      warnings: stats.warnings
-    }))
-    .sort((a, b) => (b.errors + b.warnings) - (a.errors + a.warnings))
+  return Object.entries(aggregatedStats.value.fileStats)
+    .map(([path, data]) => ({ path, ...data }))
+    .filter(file => file.errors > 0 || file.warnings > 0)
+    .sort((a, b) => b.errors - a.errors || b.warnings - a.warnings)
     .slice(0, 5)
 })
 
-// Calculate health percentage for a file
-const calculateHealthPercent = (file: {errors: number, warnings: number}) => {
-  const totalIssues = file.errors * 2 + file.warnings
-  const maxPossibleIssues = 20 // Arbitrary max value for percentage calculation
-  const healthPercent = Math.max(0, 100 - (totalIssues / maxPossibleIssues) * 100)
-  return Math.round(healthPercent)
+// Chart data based on aggregated stats
+const chartData = computed(() => ({
+  labels: ['С ошибками', 'С предупреждениями', 'Чистые'],
+  datasets: [
+    {
+      data: [
+        aggregatedStats.value.filesWithErrors,
+        aggregatedStats.value.filesWithWarnings,
+        aggregatedStats.value.cleanFiles
+      ],
+      backgroundColor: ['#ff6b6b', '#ffd93d', '#6bff6b'],
+    },
+  ],
+}))
+
+// Logic for selected file details
+const selectedFileStats = computed(() => {
+  if (!selectedFile.value) return null
+  return aggregatedStats.value.fileStats[selectedFile.value] || { errors: 0, warnings: 0 }
+})
+
+// Find messages across all tests for the selected file
+const selectedFileMessages = computed(() => {
+  if (!selectedFile.value) return []
+  const messages: (TestResultMessage & { testId: number; index: number })[] = []
+  let messageIndex = 0
+  props.tests.forEach(test => {
+    test.results?.forEach(result => {
+      if (result.parsedMetrics?.file_path === selectedFile.value) {
+        result.parsedOutput?.forEach(msg => {
+          messages.push({ ...msg, testId: test.id, index: messageIndex++ })
+        })
+      }
+    })
+  })
+  return messages
+})
+
+const selectFile = (filePath: string | null) => {
+  selectedFile.value = filePath
 }
 
-// Calculate health color based on percentage
-const calculateHealthColor = (file: {errors: number, warnings: number}) => {
-  const percent = calculateHealthPercent(file)
-  if (percent >= 70) return 'positive'
-  if (percent >= 40) return 'warning'
-  return 'negative'
-}
-
-// Overall statistics
-const totalErrors = computed(() => {
-  return Object.values(fileStats.value).reduce((sum, stats) => sum + stats.errors, 0)
-})
-
-const totalWarnings = computed(() => {
-  return Object.values(fileStats.value).reduce((sum, stats) => sum + stats.warnings, 0)
-})
-
-const totalFiles = computed(() => {
-  return Object.keys(fileStats.value).length
-})
-
-// Some previous metrics for comparison (sample data)
-const previousTotalErrors = computed(() => Math.round(totalErrors.value * 0.8))
-const previousTotalWarnings = computed(() => Math.round(totalWarnings.value * 1.2))
-
-// Clean files percentage
-const cleanFilesPercent = computed(() => {
-  if (totalFiles.value === 0) return 0
-  const filesWithIssues = Object.values(fileStats.value).filter(f => f.errors > 0 || f.warnings > 0).length
-  const cleanFiles = totalFiles.value - filesWithIssues
-  return Math.round((cleanFiles / totalFiles.value) * 100)
-})
-
+// Chart creation logic
 const createChart = () => {
   if (!chartRef.value) return
-
   chart?.destroy()
-  
-  const totalFiles = Object.keys(fileStats.value).length
-  const filesWithErrors = Object.values(fileStats.value).filter(f => f.errors > 0).length
-  const filesWithWarnings = Object.values(fileStats.value).filter(f => f.warnings > 0 && f.errors === 0).length
-  const cleanFiles = totalFiles - filesWithErrors - filesWithWarnings
-
   chart = new Chart(chartRef.value, {
     type: 'doughnut',
-    data: {
-      labels: ['Файлы с ошибками', 'Файлы с предупреждениями', 'Чистые файлы'],
-      datasets: [{
-        data: [filesWithErrors, filesWithWarnings, cleanFiles],
-        backgroundColor: ['#D50000', '#FFD600', '#00C853'],
-        borderWidth: 0
-      }]
-    },
+    data: chartData.value,
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      cutout: '70%',
       plugins: {
         legend: {
-          position: 'bottom',
-          labels: {
-            padding: 20,
-            usePointStyle: true,
-            pointStyle: 'circle'
-          }
+          position: 'bottom' as const,
         },
         tooltip: {
           callbacks: {
-            label: (tooltipItem: TooltipItem<'doughnut'>) => {
-              const label = tooltipItem.label || '';
-              const rawValue = tooltipItem.raw as number;
-              const percentage = totalFiles ? Math.round((rawValue / totalFiles) * 100) : 0;
-              return `${label}: ${rawValue} (${percentage}%)`;
-            }
-          }
-        }
-      }
-    }
+            label: function (context: TooltipItem<'doughnut'>) {
+              let label = context.label || ''
+              if (label) {
+                label += ': '
+              }
+              if (context.parsed !== null) {
+                const dataset = context.chart.data.datasets?.[0]
+                if (dataset?.data) {
+                  const total = dataset.data.reduce((a, b) => (a as number) + (b as number), 0) as number
+                  const percentage = total > 0 ? Math.round((context.parsed / total) * 100) : 0
+                  label += `${context.parsed} (${percentage}%)`
+                }
+              }
+              return label
+            },
+          },
+        },
+      },
+    },
   })
 }
 
-// Update chart when data changes
-watch(() => props.tests, () => {
-  createChart()
-}, { deep: true })
+// Health calculation helpers
+const calculateHealthPercent = (file: { errors: number; warnings: number }) => {
+  const totalIssues = file.errors + file.warnings
+  const score = Math.max(0, 100 - totalIssues * 5)
+  return score
+}
 
-onMounted(() => {
-  createChart()
-})
+const calculateHealthColor = (file: { errors: number; warnings: number }) => {
+  if (file.errors > 0) return 'negative'
+  if (file.warnings > 0) return 'warning'
+  return 'positive'
+}
+
+onMounted(createChart)
+watch(chartData, createChart, { deep: true })
 
 onUnmounted(() => {
   chart?.destroy()
@@ -437,5 +437,16 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.modern-card {
+  background-color: #fff;
+  border-radius: $border-radius;
+  box-shadow: $shadow-sm;
+}
+
+.top-files {
+  max-height: 300px;
+  overflow-y: auto;
 }
 </style> 

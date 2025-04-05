@@ -24,7 +24,7 @@ class TestController extends Controller
             return response(['errors' => $validator->errors()], 422);
         }
 
-        $query = Test::query()->with('project');
+        $query = Test::query()->with('project', 'results');
 
         if ($request->filled('project_id')) {
             $query->where('project_id', $request->input('project_id'));
