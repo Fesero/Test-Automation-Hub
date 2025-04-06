@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TestController;
 use App\Http\Controllers\Api\TestResultController;
+use App\Http\Controllers\ProjectFileStateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -29,7 +30,13 @@ Route::prefix('tests')->group(function () {
     Route::post('/sniffer', [TestResultController::class, 'storeFromPlugin'])
         // ->middleware('auth:sanctum') // Auth still removed for now
         ->name('results.store.sniffer');
-    Route::post('/phpstan', [TestResultController::class, 'storeFromPlugin'])
+    Route::post('/static_analysis', [TestResultController::class, 'storeFromPlugin'])
         // ->middleware('auth:sanctum') // Auth still removed for now
         ->name('results.store.phpstan');
+});
+
+// Роуты для статусов файлов проекта
+Route::prefix('projects/{projectId}/file-states')->group(function () {
+    Route::get('/', [ProjectFileStateController::class, 'index'])->name('project-file-states.index');
+    Route::get('/{id}', [ProjectFileStateController::class, 'show'])->name('project-file-states.show');
 });

@@ -20,4 +20,4 @@ class Authenticate extends Middleware
         // Otherwise, for web requests, redirect to the login route (if defined).
         return $request->expectsJson() ? null : route('login');
     }
-} 
+}
