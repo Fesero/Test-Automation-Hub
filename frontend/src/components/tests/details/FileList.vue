@@ -2,7 +2,7 @@
   <q-list bordered separator>
     <q-item-label header class="bg-grey-2">
       <div class="row items-center justify-between">
-        <div>Список проверенных файлов</div>
+        <div>Список проверенных файлов ({{ filteredResults.length }})</div>
         <q-input 
           v-model="search" 
           dense 
@@ -17,40 +17,46 @@
       </div>
     </q-item-label>
     <q-item
-      v-for="(fileData, filePath) in filteredFiles"
-      :key="filePath"
+      v-for="result in filteredResults"
+      :key="result.id"
       clickable
       v-ripple
-      :active="currentFile === String(filePath)"
-      @click="$emit('select-file', String(filePath))"
+      :active="currentFilePath === result.parsedMetrics?.file_path"
+      @click="$emit('select-file', result.parsedMetrics?.file_path || '')"
     >
       <q-item-section avatar>
-        <q-avatar :color="fileData.errors > 0 ? 'red-2' : 'green-2'" text-color="white">
+        <q-avatar :color="(result.parsedMetrics?.errors ?? 0) > 0 ? 'red-2' : 'green-2'" text-color="white">
           <q-icon 
             name="code" 
-            :color="fileData.errors > 0 ? 'red' : 'green'" 
+            :color="(result.parsedMetrics?.errors ?? 0) > 0 ? 'red' : 'green'" 
           />
         </q-avatar>
       </q-item-section>
       <q-item-section>
-        <q-item-label>{{ String(filePath).split('\\').pop() }}</q-item-label>
+        <q-item-label>{{ result.parsedMetrics?.file_path?.split(/[\\/]/).pop() }}</q-item-label>
+        <q-tooltip v-if="result.parsedMetrics?.file_path">{{ result.parsedMetrics.file_path }}</q-tooltip>
         <q-item-label caption>
           <div class="row items-center q-gutter-x-sm">
-            <q-badge :color="fileData.errors > 0 ? 'negative' : 'positive'" outline>
-              {{ fileData.errors }} ошибок
+            <q-badge :color="(result.parsedMetrics?.errors ?? 0) > 0 ? 'negative' : 'positive'" outline>
+              {{ result.parsedMetrics?.errors ?? 0 }} ошибок
             </q-badge>
-            <q-badge :color="fileData.warnings > 0 ? 'warning' : 'positive'" outline>
-              {{ fileData.warnings }} предупреждений
+            <q-badge :color="(result.parsedMetrics?.warnings ?? 0) > 0 ? 'warning' : 'positive'" outline>
+              {{ result.parsedMetrics?.warnings ?? 0 }} предупреждений
             </q-badge>
-            <span class="text-grey-7">{{ filePath }}</span>
+            <span class="text-grey-7">{{ result.parsedMetrics?.file_path }}</span>
           </div>
         </q-item-label>
       </q-item-section>
       <q-item-section side>
         <q-btn-group flat>
-          <q-btn flat round icon="visibility" @click.stop="$emit('select-file', String(filePath))" />
-          <q-btn flat round icon="content_copy" @click.stop="$emit('copy-path', String(filePath))" />
+          <q-btn flat round icon="visibility" @click.stop="$emit('select-file', result.parsedMetrics?.file_path || '')" />
+          <q-btn flat round icon="content_copy" @click.stop="$emit('copy-path', result.parsedMetrics?.file_path || '')" />
         </q-btn-group>
+      </q-item-section>
+    </q-item>
+    <q-item v-if="filteredResults.length === 0">
+      <q-item-section class="text-center text-grey">
+        Файлы не найдены или не содержат ошибок/предупреждений.
       </q-item-section>
     </q-item>
   </q-list>
@@ -58,13 +64,13 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import type { FileResult } from 'src/types/test.type'
+import type { TestResult } from 'src/types/test.type'
 
 const search = ref('')
 
 const props = defineProps<{
-  files: Record<string, FileResult>
-  currentFile: string | null
+  results: TestResult[]
+  currentFilePath: string | null | undefined
 }>()
 
 defineEmits<{
@@ -72,15 +78,13 @@ defineEmits<{
   'copy-path': [path: string]
 }>()
 
-const filteredFiles = computed(() => {
-  if (!search.value) return props.files
+const filteredResults = computed(() => {
+  if (!search.value) return props.results
   
-  return Object.entries(props.files).reduce((acc, [path, data]) => {
-    if (path.toLowerCase().includes(search.value.toLowerCase())) {
-      acc[path] = data
-    }
-    return acc
-  }, {} as Record<string, FileResult>)
+  const needle = search.value.toLowerCase()
+  return props.results.filter((result) =>
+    result.parsedMetrics?.file_path?.toLowerCase().includes(needle)
+  )
 })
 </script>
 

@@ -1,12 +1,20 @@
 <?php
 
+use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TestController;
+use App\Http\Controllers\Api\TestResultController;
+use App\Http\Controllers\ProjectFileStateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
+
+// Роуты для Проектов
+Route::apiResource('projects', ProjectController::class);
+// Дополнительный роут для регенерации токена
+Route::post('projects/{project}/regenerate-token', [ProjectController::class, 'regenerateToken'])->name('projects.regenerateToken');
 
 Route::prefix('tests')->group(function () {
     Route::get('/', [TestController::class, 'index']);
@@ -15,9 +23,12 @@ Route::prefix('tests')->group(function () {
     Route::put('/{test}', [TestController::class, 'update']);
     Route::delete('/{test}', [TestController::class, 'destroy']);
 
-    // Для сниффера
-    Route::post('/sniffer', [TestController::class, 'storeSnifferResults']);
+    Route::post('/{testType}/results', [TestResultController::class, 'storeFromPlugin'])
+    ->name('results.store_from_plugin');
+});
 
-    // Для PHPStan
-    Route::post('/phpstan', [TestController::class, 'storePHPStanResults']);
+// Роуты для статусов файлов проекта
+Route::prefix('projects/{projectId}/file-states')->group(function () {
+    Route::get('/', [ProjectFileStateController::class, 'index'])->name('project-file-states.index');
+    Route::get('/{id}', [ProjectFileStateController::class, 'show'])->name('project-file-states.show');
 });

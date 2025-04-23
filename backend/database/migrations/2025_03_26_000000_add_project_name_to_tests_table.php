@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('tests', function (Blueprint $table) {
-            $table->string('type')->default('sniffer')->after('id'); // Например: 'sniffer', 'crud'
+            $table->string('project_name')->nullable()->after('name'); // Название проекта
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('tests', function (Blueprint $table) {
-            $table->dropColumn('type');
+            $table->dropColumn('project_name');
         });
     }
-};
+}; 

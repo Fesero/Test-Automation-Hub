@@ -1,0 +1,333 @@
+// app global css in SCSS form
+
+// Import base variables if not already automatically included by Quasar
+// @import 'quasar.variables.scss';
+
+body {
+  background-color: $body-background;
+  color: $text-primary;
+  // Ensure modern typography applies in dark mode too
+  font-family: 'Inter', 'Roboto', sans-serif;
+  line-height: 1.5;
+  letter-spacing: -0.011em;
+}
+
+// Ensure QPage uses the body background
+.q-page {
+  background-color: $body-background;
+  color: $text-primary;
+}
+
+// Add a class for surfaces if needed, though Quasar components should use $surface-background
+.surface {
+  background-color: $surface-background;
+  color: $text-primary;
+}
+
+// Example of applying styles globally to QCard if needed, but prefer component-level styling
+// .q-card {
+//   background-color: $surface-background !important; 
+//   color: $text-primary !important;
+//   border: 1px solid $separator-color; 
+// }
+
+// Modern card styling for dark theme
+.modern-card {
+  border-radius: $card-border-radius; // Use variable defined earlier
+  box-shadow: $card-box-shadow;     // Use variable defined earlier
+  transition: $transition-default;
+  overflow: hidden;
+  background-color: $surface-background; // Use dark surface background
+  border: 1px solid $separator-color; // Use dark separator color
+  color: $text-primary; // Ensure text color is correct
+  // Remove backdrop-filter if not desired for dark theme
+  // backdrop-filter: blur(10px); 
+
+  &:hover {
+    // Adjust hover effect for dark theme
+    box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.18);
+    border-color: $separator-dark-color;
+    transform: translateY(-2px);
+  }
+}
+
+// Dashboard stats card - Adapt for dark theme
+.stats-card { 
+  border-radius: $card-border-radius;
+  padding: 24px;
+  height: 100%;
+  // Use a solid color or a subtle dark gradient if desired
+  background: $surface-background; 
+  // Example dark gradient (optional)
+  // background: linear-gradient(135deg, lighten($surface-background, 5%) 0%, darken($surface-background, 5%) 100%);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid $separator-color;
+  box-shadow: $card-box-shadow;
+  color: $text-primary;
+
+  // Remove or adjust light overlay
+  // &::before { ... }
+
+  &__title {
+    color: $text-secondary; // Use secondary text color
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+    font-weight: 500;
+  }
+
+  &__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: $text-primary; // Use primary text color
+    margin-bottom: 0.5rem;
+    line-height: 1.2;
+  }
+
+  &__trend {
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    color: $text-secondary; // Use secondary text color
+
+    .q-icon {
+      margin-right: 4px;
+      font-size: 1.1em;
+    }
+    // Trend color based on value (positive/negative)
+    &--up {
+      color: $positive;
+    }
+    &--down {
+      color: $negative;
+    }
+  }
+  
+  // Keep chart subtle if used
+  &__chart {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    opacity: 0.1; // Make it very subtle on dark background
+    width: 100%;
+    height: 40px;
+  }
+}
+
+// Modern table styling for dark theme
+.modern-table {
+  border-radius: $card-border-radius;
+  overflow: hidden;
+  box-shadow: $card-box-shadow;
+  background-color: $surface-background; // Use dark surface
+  border: 1px solid $separator-color; // Use dark border
+  color: $text-primary; // Ensure text color
+
+  .q-table {
+    &__card {
+      border-radius: $card-border-radius;
+      background: transparent; // Inherit from parent
+      box-shadow: none;
+    }
+
+    thead tr th {
+      font-weight: 600;
+      color: $text-secondary; // Use secondary text
+      background-color: $table-header-background; // Use variable
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 16px;
+      border-bottom: 1px solid $table-separator-color;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      border-bottom: 1px solid $table-separator-color;
+
+      &:last-child {
+         border-bottom: none; // No border for the last row
+      }
+
+      &:hover {
+        background-color: $table-row-hover-background; // Use variable
+      }
+
+      &.selected {
+        background-color: $list-item-active-background; // Use variable
+      }
+
+      td {
+        padding: 16px;
+        color: $text-primary;
+      }
+    }
+    // Ensure bottom controls also match dark theme
+    &__bottom {
+      background-color: $table-header-background;
+      color: $text-secondary;
+      border-top: 1px solid $table-separator-color;
+      .q-select .q-field__native, .q-select .q-field__marginal {
+        color: $text-secondary;
+      }
+    }
+  }
+}
+
+// Tabs styling for dark theme
+.modern-tabs {
+  background: $surface-background; // Use dark surface
+  // backdrop-filter: blur(10px); // Remove glass effect
+  border-radius: $card-border-radius;
+  padding: 4px;
+  box-shadow: $card-box-shadow; // Use dark shadow
+  border: 1px solid $separator-color; // Use dark border
+
+  .q-tab {
+    padding: 0.75rem 1.5rem;
+    min-height: 48px;
+    border-radius: 6px; // Slightly smaller radius for tabs inside
+    transition: all 0.3s ease;
+
+    &__label {
+      font-weight: 500;
+      color: $text-secondary;
+      font-size: 0.875rem;
+    }
+    
+    &--active {
+       // Use primary color for active tab background
+      background: $primary; 
+      // Ensure text is readable
+      .q-tab__label {
+        font-weight: 600;
+        color: white; 
+      }
+      .q-icon {
+        color: white;
+      }
+    }
+    
+    &:not(.q-tab--active) {
+        .q-icon {
+            color: $text-secondary;
+        }
+        &:hover {
+           background: $list-item-hover-background;
+            .q-tab__label {
+                color: $text-primary;
+            }
+             .q-icon {
+                color: $text-primary;
+            }
+        }
+    }
+  }
+  // Adjust indicator color if needed
+  .q-tabs__indicator {
+     background-color: $primary; // Match active tab or use accent
+  }
+}
+
+// Status badges for dark theme
+.status-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 6px 12px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+
+  // Use variables for status colors
+  &--pending {
+    background-color: rgba($warning, 0.15);
+    color: $warning;
+  }
+  &--running {
+    background-color: rgba($info, 0.15);
+    color: $info;
+  }
+  &--completed,
+  &--passed { // Add passed status
+    background-color: rgba($positive, 0.15);
+    color: $positive;
+  }
+  &--failed,
+  &--error { // Add error status
+    background-color: rgba($negative, 0.15);
+    color: $negative;
+  }
+  &--default { // Add a default style
+     background-color: rgba($text-secondary, 0.15);
+     color: $text-secondary;
+  }
+}
+
+// Custom scrollbar for dark theme
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: darken($body-background, 5%); // Darker track
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: $surface-background; // Use surface color for thumb
+  border-radius: 10px;
+  border: 2px solid darken($body-background, 5%); // Create border effect
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background: lighten($surface-background, 10%);
+  }
+}
+
+// Animations
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s $animation-smooth;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+.slide-up-enter-active, .slide-up-leave-active {
+  transition: all 0.3s $animation-smooth;
+}
+.slide-up-enter-from, .slide-up-leave-to {
+  transform: translateY(20px);
+  opacity: 0;
+}
+
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.3s, transform 0.3s $animation-smooth;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+// Remove glass effect components
+/*
+.glass-card {
+  ...
+}
+*/
+
+// Remove premium button styles if conflicting
+/*
+.premium-btn {
+  ...
+}
+*/
