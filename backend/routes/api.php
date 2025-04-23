@@ -23,16 +23,8 @@ Route::prefix('tests')->group(function () {
     Route::put('/{test}', [TestController::class, 'update']);
     Route::delete('/{test}', [TestController::class, 'destroy']);
 
-    // Роут для сохранения результатов теста
-    Route::post('/{test}/results', [TestResultController::class, 'store'])->name('tests.results.store');
-
-    // Роуты для приема результатов от TAHAnalyzer плагина (возвращаем на TestResultController)
-    Route::post('/sniffer', [TestResultController::class, 'storeFromPlugin'])
-        // ->middleware('auth:sanctum') // Auth still removed for now
-        ->name('results.store.sniffer');
-    Route::post('/static_analysis', [TestResultController::class, 'storeFromPlugin'])
-        // ->middleware('auth:sanctum') // Auth still removed for now
-        ->name('results.store.phpstan');
+    Route::post('/{testType}/results', [TestResultController::class, 'storeFromPlugin'])
+    ->name('results.store_from_plugin');
 });
 
 // Роуты для статусов файлов проекта

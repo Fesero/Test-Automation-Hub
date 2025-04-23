@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
+use App\Actions\ProcessPluginResultsAction;
+use App\Http\Requests\StorePluginResultRequest;
 
 class TestResultController extends Controller
 {
@@ -112,23 +114,25 @@ class TestResultController extends Controller
     /**
      * Сохранение результатов от плагина TAHAnalyzer.
      *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\JsonResponse
+     * @param StorePluginResultRequest $request
+     * @param string $typeTest
+     * @param ProcessPluginResultsAction $processPluginResultsAction
+     * @return JsonResponse
      */
-    public function storeFromPlugin(Request $request): JsonResponse
+    public function storeFromPlugin(
+        StorePluginResultRequest $request,
+        string $typeTest,
+        ProcessPluginResultsAction $processPluginResultsAction
+        ): JsonResponse
     {
         // Валидация входных данных
         $validator = Validator::make($request->all(), [
             'projectName' => 'required|string|max:255',
             'totals' => 'required|array',
-            // 'totals.errors' => 'required|integer|min:0',
-            // 'totals.warnings' => 'required|integer|min:0',
-            // 'totals.fixable' => 'required|integer|min:0',
             'files' => 'nullable|array',
-            'files.*' => 'sometimes|array', // Используем sometimes, если files может быть пустым или отсутствовать
+            'files.*' => 'sometimes|array',
             'files.*.errors' => 'required_with:files.*|integer|min:0',
             'files.*.warnings' => 'required_with:files.*|integer|min:0',
-            // 'files.*.messages' => 'required_with:files.*|array', // Сообщения не обрабатываем здесь напрямую
         ]);
 
         if ($validator->fails()) {
@@ -137,125 +141,32 @@ class TestResultController extends Controller
 
         $validatedData = $validator->validated();
         $projectName = $validatedData['projectName'];
-        $filesData = $validatedData['files'] ?? []; // Убедимся, что $filesData - массив
-        $totals = $validatedData['totals']; // Данные totals могут быть нужны для статуса теста
+        $filesData = $validatedData['files'] ?? [];
+        $totals = $validatedData['totals'];
 
-        // Определяем тип теста из URL
-        $testType = $request->segment(count($request->segments())); // Последний сегмент URL (sniffer или static_analysis)
-
-        if (!in_array($testType, ['sniffer', 'static_analysis'])) {
-            Log::error('Неверный тип теста определен из сегмента URL', ['segment' => $testType]);
+        if (!in_array($typeTest, ['sniffer', 'static_analysis'])) {
+            Log::warning('Неверный тип теста получен из URL', ['type' => $typeTest]);
             return response()->json(['error' => 'Указан неверный тип анализа в URL.'], 400);
         }
 
-        $test = null; // Инициализируем переменную для теста
-
-        DB::beginTransaction();
         try {
-            // 1. Найти или создать проект
-            $project = Project::firstOrCreate(
-                ['name' => $projectName]
-                // ['url' => ''] // Можно добавить значения по умолчанию
+            $test = $processPluginResultsAction->run(
+                projectName: $projectName,
+                typeTest: $typeTest,
+                filesData: $filesData,
+                totals: $totals
             );
 
-            // 2. Создать родительскую запись Test для этого запуска анализа
-            $test = Test::create([
-                'project_id' => $project->id,
-                'name' => 'Анализ (' . ucfirst($testType) . ') от ' . now()->format('d.m.Y H:i'),
-                'type' => $testType,
-                'status' => 'running', // Начинаем со статуса "running"
-            ]);
-
-            $analysisTimestamp = now(); // Единая временная метка для всех файлов этого анализа
-
-            // 3. Отправить задачи в очередь для обработки каждого файла
-            foreach ($filesData as $filePath => $fileData) {
-                // Проверка наличия ключей перед доступом
-                $errorCount = $fileData['errors'] ?? 0;
-                $warningCount = $fileData['warnings'] ?? 0;
-
-                Log::info('Processing file:', ['path' => $filePath]);
-                $messages = $fileData['messages'] ?? [];
-                $fileStatus = 'passed';
-
-                if (!empty($messages)) {
-                    $hasErrors = collect($messages)->contains(fn($msg) => strtoupper($msg['type']) === 'ERROR');
-                    if ($hasErrors) {
-                        $fileStatus = 'failed';
-                        $overallStatus = 'failed';
-                    } else {
-                        $fileStatus = 'passed';
-                    }
-                }
-
-                $resultData = [
-                    'test_id' => $test->id,
-                    'status' => $fileStatus,
-                    'output' => !empty($messages) ? json_encode($messages) : null,
-                    'metrics' => json_encode([
-                        'file_path' => $filePath,
-                        'errors' => $fileData['errors'] ?? 0,
-                        'warnings' => $fileData['warnings'] ?? 0,
-                    ]),
-                ];
-
-                Log::info('Attempting to create TestResult:', $resultData);
-                try {
-                    TestResult::create($resultData);
-                    Log::info('TestResult created successfully for:', ['path' => $filePath]);
-                } catch (\Throwable $e) {
-                    Log::error('Failed to create TestResult for file:', [
-                        'path' => $filePath,
-                        'error' => $e->getMessage(),
-                        'data' => $resultData,
-                        'exception' => $e
-                    ]);
-                    // Mark overall status as error if result creation fails
-                    $overallStatus = 'error'; 
-                    $errorOccurred = true; // Set flag for internal error
-                    // Optionally re-throw or break the loop depending on desired behavior
-                    // break; // Stop processing further files on error
-                }
-
-                UpdateProjectFileStateJob::dispatch(
-                    $project->id,
-                    $filePath,
-                    $errorCount,
-                    $warningCount,
-                    $test->id,
-                    $analysisTimestamp
-                );
-            }
-
-            // 4. Обновить статус родительского теста Test
-            // Статус будет зависеть от общего результата анализа (например, из totals)
-            // Простая логика: если были ошибки -> failed, иначе -> completed
-            $finalStatus = ($totals['errors'] ?? 0) > 0 ? 'failed' : 'completed';
-            $test->update(['status' => $finalStatus]);
-
-            DB::commit();
-
-            // Возвращаем созданный Test (без результатов, т.к. они обрабатываются асинхронно)
-            // Можно вернуть только ID теста или базовую информацию
-            return response()->json($test, 201); // Или 202 Accepted, т.к. обработка не завершена
+            return response()->json($test->load('project'), 201);
 
         } catch (\Throwable $e) {
-            DB::rollBack();
-
-            // Если тест был создан до ошибки, попробуем обновить его статус на 'error'
-            if ($test) {
-                try {
-                    $test->update(['status' => 'error']);
-                } catch (\Throwable $updateException) {
-                    Log::error('Не удалось обновить статус теста на error после основной ошибки', ['test_id' => $test->id, 'exception' => $updateException]);
-                }
-            }
-
             Log::error("Ошибка при обработке результатов плагина: " . $e->getMessage(), [
                 'exception' => $e,
-                'request_data' => $request->except('files') // Логируем без potentially large files array
+                'projectName' => $projectName,
+                'testType' => $typeTest,
             ]);
-            return response()->json(['error' => 'Произошла внутренняя ошибка сервера при обработке результатов.', 'details' => $e->getMessage()], 500);
+            
+            return response()->json(['error' => 'Произошла внутренняя ошибка сервера при обработке результатов.'], 500);
         }
     }
 }

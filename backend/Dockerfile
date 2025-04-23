@@ -1,7 +1,6 @@
 # Используем официальный образ PHP 8.2 с FPM
 FROM php:8.2-fpm
 
-# Устанавливаем зависимости, включая supervisor и redis
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -11,7 +10,6 @@ RUN apt-get update && apt-get install -y \
     libonig-dev \
     libxml2-dev \
     supervisor \
-    # Добавляем libhiredis-dev для php-redis
     libhiredis-dev \
     && pecl install redis \
     && docker-php-ext-enable redis \
@@ -44,15 +42,12 @@ RUN mkdir -p /var/log/supervisor
 COPY . .
 
 # Устанавливаем зависимости
-# Можно перенести установку зависимостей до копирования кода,
-# если composer.json/lock меняются реже, чем сам код
 RUN composer install --optimize-autoloader --no-dev
 
 # Права доступа
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/log/supervisor
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Открываем порт для FPM (если еще не открыт в docker-compose.yml)
 EXPOSE 9000
 
 # Запускаем supervisord
