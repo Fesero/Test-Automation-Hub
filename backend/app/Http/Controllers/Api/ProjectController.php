@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Http\Controllers\Api;
 
@@ -7,27 +8,22 @@ use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Http\Response;
 
 class ProjectController extends Controller
 {
     /**
      * Получение списка проектов.
      */
-    public function index()
+    public function index(): mixed
     {
         // Загружаем проекты с количеством тестов и последним тестом
         $projects = Project::query()
-            ->withCount('tests') // Добавляет поле tests_count
-            ->with('latestTest') // Загружает связь latestTest
+            ->withCount('tests')
+            ->with('latestTest')
             ->get();
 
-        // Можно добавить маппинг, чтобы сразу включить last_test_status
-        // или оставить это на фронтенде, если он уже умеет работать с latestTest
-        $projects = $projects->map(function ($project) {
-            $project->last_test_status = $project->latestTest?->status; // Добавляем поле
-            // unset($project->latestTest); // Опционально: удалить объект latestTest, если он не нужен
-            return $project;
-        });
+        $projects = $projects->map(fn(Project $project) => $project->last_test_status = $project->latestTest?->status);
 
         return response()->json($projects);
     }
@@ -35,7 +31,7 @@ class ProjectController extends Controller
     /**
      * Создание нового проекта.
      */
-    public function store(Request $request)
+    public function store(Request $request): Response
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:projects,name',
@@ -59,7 +55,7 @@ class ProjectController extends Controller
     /**
      * Получение информации о конкретном проекте.
      */
-    public function show(Project $project)
+    public function show(Project $project): Project
     {
         return $project;
     }
@@ -67,10 +63,10 @@ class ProjectController extends Controller
     /**
      * Обновление проекта.
      */
-    public function update(Request $request, Project $project)
+    public function update(Request $request, Project $project): Response
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255|unique:projects,name,' . $project->id,
+            'name' => "required|string|max:255|unique:projects,name,{$project->id}",
             'url' => 'nullable|url|max:255',
         ]);
 
@@ -86,7 +82,7 @@ class ProjectController extends Controller
     /**
      * Удаление проекта.
      */
-    public function destroy(Project $project)
+    public function destroy(Project $project): Response
     {
         $project->delete();
 
@@ -96,7 +92,7 @@ class ProjectController extends Controller
     /**
      * Генерация нового API токена для проекта.
      */
-    public function regenerateToken(Project $project)
+    public function regenerateToken(Project $project): Response
     {
         $project->update(['api_token' => Str::random(60)]);
         return response(['api_token' => $project->api_token]);

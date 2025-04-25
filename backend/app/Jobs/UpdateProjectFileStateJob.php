@@ -8,7 +8,7 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log; // Для логирования ошибок
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 class UpdateProjectFileStateJob implements ShouldQueue
@@ -23,10 +23,10 @@ class UpdateProjectFileStateJob implements ShouldQueue
         public string $filePath,
         public int $errorCount,
         public int $warningCount,
-        public ?int $testId, // Может быть null, если сохранение родительского теста не удалось
+        public ?int $testId,
         public \DateTimeInterface $analyzedAt
     ) {
-        // $this->onQueue('обработка-файлов');
+        
     }
 
     /**

@@ -6,7 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Test;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
+use Illuminate\Http\Response;
+use \Illuminate\Database\Eloquent\Collection;
 
 class TestController extends Controller
 {
@@ -14,7 +15,7 @@ class TestController extends Controller
      * Получение списка тестов.
      * Позволяет фильтровать по project_id.
      */
-    public function index(Request $request)
+    public function index(Request $request): Collection|Response
     {
         $validator = Validator::make($request->all(), [
             'project_id' => 'nullable|integer|exists:projects,id'
@@ -36,7 +37,7 @@ class TestController extends Controller
     /**
      * Создать новый тест.
      */
-    public function store(Request $request)
+    public function store(Request $request): Response
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -57,7 +58,7 @@ class TestController extends Controller
     /**
      * Получить конкретный тест.
      */
-    public function show(Test $test)
+    public function show(Test $test): Test
     {
         return $test->load('project');
     }
@@ -66,7 +67,7 @@ class TestController extends Controller
      * Обновить тест.
      * Обновление project_id не разрешено.
      */
-    public function update(Request $request, Test $test)
+    public function update(Request $request, Test $test): Response
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
@@ -87,7 +88,7 @@ class TestController extends Controller
     /**
      * Удалить тест.
      */
-    public function destroy(Test $test)
+    public function destroy(Test $test): Response
     {
         $test->delete();
 

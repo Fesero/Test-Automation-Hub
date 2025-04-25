@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 namespace App\Actions;
 
@@ -11,19 +12,21 @@ use Illuminate\Support\Facades\DB;
 
 class ProcessPluginResultsAction
 {
-    public function run(string $projectName, string $typeTest, array $filesData, array $totals)
+    /**
+     * Summary of run
+     * @param string $projectName
+     * @param string $typeTest
+     * @param array $filesData
+     * @param array $totals
+     * @return mixed
+     */
+    public function run(string $projectName, string $typeTest, array $filesData, array $totals): mixed
     {
-        return DB::transaction(function () use ($projectName, $typeTest, $filesData, $totals) {
-            $project = Project::firstOrCreate(
-                ['name' => $projectName]
-            );
+        return DB::transaction(function () use ($projectName, $typeTest, $filesData, $totals): Test 
+        {
+            $project = $this->createProject(projectName: $projectName);
 
-            $test = Test::create([
-                'project_id' => $project->id,
-                'name' => 'Анализ (' . ucfirst($typeTest) . ') от ' . now()->format('d.m.Y H:i'),
-                'type' => $typeTest,
-                'status' => 'running',
-            ]);
+            $test = $this->createTest(projectID: $project->id, typeTest: $typeTest);
 
             $analysisTimestamp = now();
             $errorOccurredInLoop = false;
@@ -43,20 +46,24 @@ class ProcessPluginResultsAction
                     }
                 }
 
+                $output = !empty($messages) ? json_encode($messages) : null;
+
+                $metrics = json_encode([
+                    'file_path' => $filePath,
+                    'errors' => $errorCount,
+                    'warnings' => $warningCount,
+                ]);
+
                 $resultData = [
                     'test_id' => $test->id,
                     'status' => $fileStatus,
-                    'output' => !empty($messages) ? json_encode($messages) : null,
-                    'metrics' => json_encode([
-                        'file_path' => $filePath,
-                        'errors' => $errorCount,
-                        'warnings' => $warningCount,
-                    ]),
+                    'output' => $output,
+                    'metrics' => $metrics,
                 ];
 
                 Log::info('Attempting to create TestResult:', ['path' => $filePath]);
                 try {
-                    TestResult::create($resultData);
+                    $this->createTestResult($resultData);
                     Log::info('TestResult created successfully for:', ['path' => $filePath]);
                 } catch (\Throwable $e) {
                     Log::error('Failed to create TestResult for file:', [
@@ -78,16 +85,39 @@ class ProcessPluginResultsAction
                 );
             }
 
-            $finalStatus = 'completed';
             if ($errorOccurredInLoop) {
                 $finalStatus = 'error';
             } elseif (($totals['errors'] ?? 0) > 0) {
                 $finalStatus = 'failed';
+            } else {
+                $finalStatus = 'completed';
             }
 
             $test->update(['status' => $finalStatus]);
 
             return $test;
         });
+    }
+
+    private function createProject(string $projectName): Project
+    {
+        return Project::firstOrCreate(
+            ['name' => $projectName]
+        );
+    }
+
+    private function createTest(int $projectID, string $typeTest): Test
+    {
+        return Test::create([
+            'project_id' => $projectID,
+            'name' => 'Анализ (' . ucfirst($typeTest) . ') от ' . now()->format('d.m.Y H:i'),
+            'type' => $typeTest,
+            'status' => 'running',
+        ]);
+    }
+
+    private function createTestResult(array $data): TestResult
+    {
+        return TestResult::create($data);
     }
 }
