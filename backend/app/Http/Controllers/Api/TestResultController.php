@@ -3,29 +3,26 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Jobs\UpdateProjectFileStateJob;
 use App\Models\Test;
 use App\Models\TestResult;
-use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\Http\JsonResponse;
 use App\Actions\ProcessPluginResultsAction;
 use App\Http\Requests\StorePluginResultRequest;
+use Illuminate\Http\Response;
 
 class TestResultController extends Controller
 {
     /**
      * Отображение списка ресурсов (результатов тестов).
-     * @todo Реализовать, если необходимо
+     * TODO: сделать
      */
-    public function index()
+    public function index(): void
     {
-        // Возможно, здесь потребуется фильтрация по Test ID
-        // return TestResult::where(\'test_id\', $testId)->get();
+
     }
 
     /**
@@ -35,14 +32,14 @@ class TestResultController extends Controller
      * @param \App\Models\Test $test
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request, Test $test)
+    public function store(Request $request, Test $test): Response
     {
         $validator = Validator::make($request->all(), [
             // Определяем возможные статусы для результатов
             'status' => ['required', 'string', Rule::in(['passed', 'failed', 'error', 'skipped', 'pending', 'running'])],
             'output' => 'nullable|string',
             'report_path' => 'nullable|string|max:1024',
-            'metrics' => 'nullable|json', // Принимаем JSON строку или массив
+            'metrics' => 'nullable|json',
         ]);
 
         if ($validator->fails()) {
@@ -51,9 +48,6 @@ class TestResultController extends Controller
 
         $validatedData = $validator->validated();
 
-        // Если metrics пришел как JSON строка, декодируем его
-        // Если как массив, оставляем как есть
-        // (Зависит от того, как клиент будет отправлять)
         if (isset($validatedData['metrics']) && is_string($validatedData['metrics'])) {
             $decodedMetrics = json_decode($validatedData['metrics'], true);
             // Проверяем на ошибку декодирования
@@ -66,12 +60,10 @@ class TestResultController extends Controller
         // Создаем результат, связанный с тестом
         $testResult = $test->results()->create($validatedData);
 
-        // Опционально: Обновляем статус родительского теста
-        // Здесь можно добавить логику: если status != 'running'/'pending', то тест завершен
         $finalTestStatus = match ($validatedData['status']) {
             'passed' => 'completed',
             'failed', 'error' => 'failed',
-            default => $test->status, // Оставляем текущий статус теста для pending/running/skipped
+            default => $test->status,
         };
         if ($test->status !== $finalTestStatus) {
             $test->update(['status' => $finalTestStatus]);
@@ -87,28 +79,25 @@ class TestResultController extends Controller
      */
     public function show(TestResult $testresult): TestResult
     {
-        // Можно добавить загрузку связей, если нужно
-        // return $testresult->load(\'test\');
         return $testresult;
     }
 
     /**
      * Обновление указанного ресурса (результата теста) в хранилище.
-     * @todo Реализовать, если необходимо
+     * TODO: сделать обновление либо удалить
      */
-    public function update(Request $request, TestResult $testresult)
+    public function update(Request $request, TestResult $testresult): void
     {
-        // Логика обновления TestResult
+
     }
 
     /**
      * Удаление указанного ресурса (результата теста) из хранилища.
-     * @todo Реализовать, если необходимо
+     * TODO: сделать удаление
      */
-    public function destroy(TestResult $testresult)
+    public function destroy(TestResult $testresult): void
     {
-        // $testresult->delete();
-        // return response()->noContent();
+
     }
 
     /**

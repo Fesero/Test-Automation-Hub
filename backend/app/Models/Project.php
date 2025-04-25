@@ -36,6 +36,5 @@ class Project extends Model
     public function latestTest(): HasOne
     {
         return $this->hasOne(Test::class)->latestOfMany();
-        // Или ->latestOfMany('created_at') если нужно явно указать поле сортировки
     }
 }

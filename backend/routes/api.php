@@ -1,4 +1,5 @@
 <?php
+declare(strict_types=1);
 
 use App\Http\Controllers\Api\ProjectController;
 use App\Http\Controllers\Api\TestController;
@@ -7,16 +8,14 @@ use App\Http\Controllers\ProjectFileStateController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+Route::get('/user', fn(Request $request): mixed => $request->user())->middleware('auth:sanctum');
 
 // Роуты для Проектов
 Route::apiResource('projects', ProjectController::class);
 // Дополнительный роут для регенерации токена
 Route::post('projects/{project}/regenerate-token', [ProjectController::class, 'regenerateToken'])->name('projects.regenerateToken');
 
-Route::prefix('tests')->group(function () {
+Route::prefix('tests')->group(function (): void {
     Route::get('/', [TestController::class, 'index']);
     Route::post('/', [TestController::class, 'store']);
     Route::get('/{test}', [TestController::class, 'show']);
@@ -28,7 +27,7 @@ Route::prefix('tests')->group(function () {
 });
 
 // Роуты для статусов файлов проекта
-Route::prefix('projects/{projectId}/file-states')->group(function () {
+Route::prefix('projects/{projectId}/file-states')->group(function (): void {
     Route::get('/', [ProjectFileStateController::class, 'index'])->name('project-file-states.index');
     Route::get('/{id}', [ProjectFileStateController::class, 'show'])->name('project-file-states.show');
 });
